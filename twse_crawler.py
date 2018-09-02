@@ -30,6 +30,7 @@ class Crawler:
         table = soup.find("table", kwargs)
         return table
 
+
 def get_dataframe(table):
     raws = table.find_all('tr')
     # get the header
@@ -44,6 +45,7 @@ def get_dataframe(table):
 
     df = pd.DataFrame(list_of_table, columns=header_of_table)
     return df
+
 
 def gen_output_path(dirtory='', filename=''):
     if not filename:
@@ -76,12 +78,12 @@ def get_list_of_company():
         for code in codes:
             try:
                 table = crawler.get_table(session, url2, {'encodeURIComponent': '1',
-                                                 'step': '1',
-                                                 'firstin': '1',
-                                                 'TYPEK': typek[0],
-                                                 'code': code[0]}, style='width:100%;')
+                                                          'step': '1',
+                                                          'firstin': '1',
+                                                          'TYPEK': typek[0],
+                                                          'code': code[0]}, style='width:100%;')
                 df = get_dataframe(table)
-                out_excel_name= ('twse_%s_%s.xlsx' % (typek[1], code[1]))
+                out_excel_name = ('twse_%s_%s.xlsx' % (typek[1], code[1]))
                 print(df)
                 df.to_excel(gen_output_path('data', out_excel_name), index=False, encoding='UTF-8')
 
@@ -91,80 +93,3 @@ def get_list_of_company():
             time.sleep(10)
 
 
-def get_income_statement(stock_id, year, season):
-    url = 'http://mops.twse.com.tw/mops/web/ajax_t164sb04'
-    session = requests.Session()
-
-    result = session.post(url, {
-        'encodeURIComponent': '1', 'step': '1', 'firstin': '1', 'queryName': 'co_id', 'TYPEK': 'all', 'isnew': 'false',
-        'co_id': stock_id, 'year': year, 'season': season
-    })
-
-    if result.ok is False:
-        print('get content fail')
-        return
-    soup = BeautifulSoup(result.content, 'html.parser')
-    table = soup.find('table', attrs={"class": "hasBorder", "align": "center"})
-
-    date = datetime(year + 1911, season * 3, 1)
-    str_date = datetime.strftime(date, '%Y-%m')
-    rows = table.find_all('tr')
-    df = parse_table(rows, str_date)
-
-    out_excel_name = 'income_statement_{0}.xlsx'.format(stock_id)
-    path = gen_output_path('data', out_excel_name)
-    stored_df = read_stored_data_frame(path)
-    if stored_df is not None:
-        print(tabulate([list(row) for row in stored_df.values], headers=list(stored_df.columns)))
-        print(tabulate([list(row) for row in df.values], headers=list(df.columns)))
-        result = pd.concat([stored_df, df], axis=1, sort=False)
-        print(tabulate([list(row) for row in result.values], headers=list(result.columns)))
-        result.to_excel(path, index=True, encoding='UTF-8')
-    else:
-        df.to_excel(path, index=True, encoding='UTF-8')
-
-
-def parse_table(rows, str_date):
-    rows_in_data_frame = []
-    column_indexes = [(str_date, '金額(千元)'), (str_date, '%')]
-    row_indexes = []
-    for row in rows:
-        r = [x.get_text() for x in row.find_all('td')]
-        if len(r) > 2:
-            rows_in_data_frame.append(r[0: 3])
-    processed_rows = []
-    main_row_index = None
-    for row in rows_in_data_frame:
-        row_data = ['' if not row[1].strip() else float(row[1].replace(',', '')),
-                    '' if not row[2].strip() else float(row[2])]
-        main_row_index = row[0] if (len(row[0]) - len(row[0].lstrip())) == 0 else main_row_index
-        second_row_index = row[0]
-        if not (row_data[0] == '' and row_data[1] == ''):
-            processed_rows.append(row_data)
-            row_indexes.append((main_row_index, second_row_index))
-
-    data_frame = pd.DataFrame(processed_rows, columns=pd.MultiIndex.from_tuples(column_indexes, names=['時間', '金額/百分比']),
-                              index=pd.MultiIndex.from_tuples(row_indexes, names=['主要項目', '次要項目']))
-    return data_frame
-
-
-def read_stored_data_frame(path):
-
-    data_frame = None
-    try:
-        data_frame = pd.read_excel(path, index_col=[0, 1], header=[0, 1])
-        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
-
-    except Exception as inst:
-        print("get exception", inst)
-        traceback.print_tb(inst.__traceback__)
-    # data_frame = pd.read_excel(path)
-
-    return data_frame
-
-
-if __name__ == "__main__":
-    # execute only if run as a script
-    get_income_statement(2330, 106, 4)
-    # print(integer)
-    # read_dataframe('data/income_statement_{0}.xlsx'.format(2330))
