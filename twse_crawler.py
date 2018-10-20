@@ -47,13 +47,13 @@ def get_dataframe(table):
     return df
 
 
-def gen_output_path(dirtory='', filename=''):
-    if not filename:
-        return None
-
-    if dirtory:
-        os.makedirs(dirtory, exist_ok=True)
-        return os.path.join(dirtory, filename)
+def gen_output_path(directory='', filename=None):
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+        if not filename:
+            return os.path.join(directory)
+        else:
+            return os.path.join(directory, filename)
     else:
         return filename
 

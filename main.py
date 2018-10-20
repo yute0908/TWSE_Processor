@@ -2,7 +2,8 @@ import traceback
 
 import pandas as pd
 
-from rdss.processors import IncomeStatementProcessor, BalanceSheetProcessor
+from rdss.balance_sheet import SimpleBalanceSheetProcessor
+from rdss.income_statement import SimpleIncomeStatementProcessor
 from twse_crawler import gen_output_path
 
 
@@ -42,12 +43,12 @@ def store_data_frame(df, out_excel_name):
 if __name__ == "__main__":
     # execute only if run as a script
     stock_id = 2330
-    start = {"year": 106, "season": 3}
-    processor = IncomeStatementProcessor(stock_id)
+    start = {"year": 2016, "season": 1}
+    processor = SimpleIncomeStatementProcessor(stock_id)
     df = processor.get_data_frames(start)
     store_data_frame(df, 'income_statement_{0}.xlsx'.format(stock_id))
 
-    processor = BalanceSheetProcessor(stock_id)
+    processor = SimpleBalanceSheetProcessor(stock_id)
     df = processor.get_data_frames(start)
     store_data_frame(df, 'balance_sheet_{0}.xlsx'.format(stock_id))
 

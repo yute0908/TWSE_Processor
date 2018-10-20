@@ -37,8 +37,10 @@ class DefaultParser(DataFrameParser):
         for row in rows_in_data_frame:
             row_data = ['' if not row[1].strip() else float(row[1].replace(',', '')),
                         '' if not row[2].strip() else float(row[2])]
-            #main_row_index = row[0] if (len(row[0]) - len(row[0].lstrip())) == 0 else main_row_index
-            main_row_index = row[0].lstrip() if (row_data[0] == '' and row_data[1] == '') else main_row_index
+            main_row_index = row[0] if (len(row[0]) - len(row[0].lstrip())) == 0 else main_row_index
+            print('row = ', row[0], ' space length = ', (len(row[0]) - len(row[0].lstrip())))
+
+            #main_row_index = row[0].lstrip() if (row_data[0] == '' and row_data[1] == '') else main_row_index
             second_row_index = row[0].lstrip()
             if not (row_data[0] == '' and row_data[1] == ''):
                 processed_rows.append(row_data)

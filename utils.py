@@ -14,10 +14,10 @@ def get_time_lines(since=None, to=None):
             return
         since_season = since.get('season', 1)
         if to is not None:
-            to_year = to.get('year', now.year - 1911)
-            to_season = to.get('season', (now.month - 1) / 3 if (to_year + 1911) == now.year else 4)
+            to_year = to.get('year', now.year)
+            to_season = to.get('season', (now.month - 1) / 3 if to_year == now.year else 4)
         else:
-            to_year = now.year - 1911
+            to_year = now.year
             to_season = (now.month - 1) / 3 + 1
 
     else:

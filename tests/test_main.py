@@ -1,10 +1,12 @@
 import unittest
 
 import requests
-from tabulate import tabulate
 
-from rdss.processors import BalanceSheetProcessor, IncomeStatementProcessor
+from rdss.balance_sheet import SimpleBalanceSheetProcessor
+from rdss.dividend_policy import DividendPolicyProcessor
+from rdss.income_statement import SimpleIncomeStatementProcessor
 from fetcher import DataFetcher
+from value_measurement import ValueMeasurementProcessor
 
 
 class MainTest(unittest.TestCase, DataFetcher):
@@ -25,14 +27,31 @@ class MainTest(unittest.TestCase, DataFetcher):
         print(result.content)
 
     def test_request_income_statement(self):
-        income_statement_processor = IncomeStatementProcessor(2330)
-        data_frame = income_statement_processor.get_data_frame(107, 2)
+        income_statement_processor = SimpleIncomeStatementProcessor(2330)
+        data_frame = income_statement_processor.get_data_frame(2018, 2)
         self.assertIsNotNone(data_frame)
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
-
+        self.assertTrue(data_frame.loc['2018Q2', 'EPS'] is not None)
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
     def test_request_balance_sheet(self):
-        balance_sheet_processor = BalanceSheetProcessor(2330)
-        data_frame = balance_sheet_processor.get_data_frame(107, 2)
+        balance_sheet_processor = SimpleBalanceSheetProcessor(2330)
+        data_frame = balance_sheet_processor.get_data_frame(2018, 2)
         self.assertIsNotNone(data_frame)
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        self.assertTrue(data_frame.loc['2018Q2', '每股淨值'] is not None)
+
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+
+    def test_dividend_policy(self):
+        dividend_policy_processor = DividendPolicyProcessor(6294)
+        data_frame = dividend_policy_processor.get_data_frame(2017, None)
+        self.assertIsNotNone(data_frame)
+        self.assertTrue(data_frame.loc[:, ['現金股利']] is not None)
+        self.assertTrue(data_frame.loc[:, ['股息']] is not None)
+        pass
+
+    def test_value_measurement(self):
+        value_measurement_processor = ValueMeasurementProcessor(4303)
+        df = value_measurement_processor.get_data_frame()
+        self.assertIsNotNone(df)
+        print(df.loc[:, ['平均股價']])
+        self.assertTrue(df.loc[:, ['平均股價']] is not None)
