@@ -36,6 +36,9 @@ class _IncomeStatementParser(DataFrameParser):
                 # print(r)
                 if '每股盈餘' in r[0]:
                     dict_datas['EPS'] = float(r[1])
+                if '本期淨利' in r[0]:
+                    dict_datas['稅後淨利'] = int(r[1].replace(',', ''))
+
 
         except Exception as inst:
             print("get exception", inst)
