@@ -1,3 +1,4 @@
+import pandas as pd
 import unittest
 
 import requests
@@ -5,12 +6,13 @@ from bs4 import BeautifulSoup
 from tabulate import tabulate
 
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
-from rdss.cashflow_statment import CashFlowStatementFetcher
+from rdss.cashflow_statment import _CashFlowStatementFetcher, CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.income_statement import SimpleIncomeStatementProcessor
 from fetcher import DataFetcher
+from rdss.stock_count import StockCountProcessor
 from utils import get_time_lines
-from value_measurement import ValueMeasurementProcessor
+from value_measurement import PriceMeasurementProcessor
 
 
 class MainTest(unittest.TestCase, DataFetcher):
@@ -54,29 +56,35 @@ class MainTest(unittest.TestCase, DataFetcher):
         self.assertTrue(data_frame.loc[:, ['股息']] is not None)
         pass
 
-    def test_value_measurement(self):
-        value_measurement_processor = ValueMeasurementProcessor(4303)
-        df = value_measurement_processor.get_data_frame()
+    def test_price_measurement(self):
+        price_measurement_processor = PriceMeasurementProcessor(4303)
+        df = price_measurement_processor.get_data_frame()
         self.assertIsNotNone(df)
         print(df.loc[:, ['平均股價']])
         self.assertTrue(df.loc[:, ['平均股價']] is not None)
 
-    def test_cash_flow_statemenst(self):
-        start = {"year": 2016, "season": 2}
-        self.get_data_frames(start)
+    def test_cash_flow_statement(self):
+        cash_flow_processor = CashFlowStatementProcessor(2330)
+        # data_frame = cash_flow_processor.get_data_frame(2017, 2)
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
-    def get_data_frames(self, start):
-        time_lines = get_time_lines(since=start)
-        time_first = time_lines[0]
-        if time_first.get('season') > 1:
-            time_lines.insert(0, {'year': time_first.get('year'), 'season': (time_first.get('season') - 1)})
-        print(len(time_lines))
+        # cash_flow_processor.get_data_frames(since={"year": 2016, "season": 2})
 
-        datafetcher = CashFlowStatementFetcher()
-        result = datafetcher.fetch(None)
-        if result.ok is False:
-            return
-        bs = BeautifulSoup(result.content, 'html.parser')
-        table = bs.find_all('table', attrs={"class": "hasBorder", "align": "center"})
+        data_frame = cash_flow_processor.get_data_frames({'year': 2018})
+        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
-        print(table[0].prettify())
+        stock_count_processor = StockCountProcessor()
+        stock_count = stock_count_processor.get_stock_count(2330, 2018)
+        # free_cash_flow_per_share = [cf / stock_count * 1000 for cf in data_frame['業主盈餘現金流']]
+        # print(free_cash_flow_per_share)
+        data_frame = data_frame.assign(每股業主盈餘現金流=pd.Series([cf / stock_count * 1000 for cf in data_frame['業主盈餘現金流']]).values)
+        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+
+
+    def test_stock_count(self):
+        stock_count_processor = StockCountProcessor()
+        stock_count = stock_count_processor.get_stock_count(2330, 2018)
+        print(stock_count)
+
+
+

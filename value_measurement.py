@@ -9,7 +9,7 @@ from data_processor import DataProcessor
 from twse_crawler import gen_output_path
 
 
-class ValueMeasurementProcessor(DataProcessor):
+class PriceMeasurementProcessor(DataProcessor):
     def __init__(self, stock_id):
         super().__init__(stock_id)
 
