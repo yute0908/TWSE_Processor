@@ -5,6 +5,7 @@ import requests
 from bs4 import BeautifulSoup
 from tabulate import tabulate
 
+import roe_utils
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import _CashFlowStatementFetcher, CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -36,9 +37,12 @@ class MainTest(unittest.TestCase):
     def test_request_income_statement(self):
         income_statement_processor = SimpleIncomeStatementProcessor(2330)
         data_frame = income_statement_processor.get_data_frame(2018, 2)
-        self.assertIsNotNone(data_frame)
-        self.assertTrue(data_frame.loc['2018Q2', 'EPS'] is not None)
-        self.assertTrue(data_frame.loc['2018Q2', '稅後淨利'] is not None)
+        # self.assertIsNotNone(data_frame)
+        # self.assertTrue(data_frame.loc['2018Q2', 'EPS'] is not None)
+        # self.assertTrue(data_frame.loc['2018Q2', '稅後淨利'] is not None)
+        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        data_frame = income_statement_processor.get_data_frames(since={'year': 2017, 'season': 1},
+                                                                to={'year': 2018, 'season': 2})
         print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
     def test_shareholder_equity(self):
@@ -106,6 +110,10 @@ class MainTest(unittest.TestCase):
         stock_count_processor = StockCountProcessor()
         stock_count = stock_count_processor.get_stock_count(2330, 2018)
         print(stock_count)
+
+    def test_roe(self):
+        roe_utils.get_in_season(2330, 2018, 2)
+        pass
 
     def test_get_matrix_level(self):
         pass
