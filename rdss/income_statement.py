@@ -24,7 +24,6 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
         dfs = []
 
         for time_line in time_lines:
-            result = {}
             data_dict = self._get_data_dict(time_line.get('year'), time_line.get('season'))
             if data_dict is None:
                 break
@@ -41,7 +40,7 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
                                           freq='Q')
             dfs.append(pd.DataFrame([result.values()], columns=result.keys(), index=period_index))
 
-        return pd.concat(dfs)
+        return pd.concat(dfs) if len(dfs) > 0 else None
 
     def get_data_frame(self, year, season):
         return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})

@@ -12,6 +12,7 @@ class ShareholderEquityProcessor(StatementProcessor):
 
     def __init__(self, stock_id):
         super().__init__(stock_id)
+        self.__tag = "ShareholderEquityProcessor"
         self._data_fetcher = _ShareholderEquityFetcher()
         self.items_to_get = ('期初餘額', '期末餘額')
         self.fields_to_get = ('權益總額',)
@@ -43,7 +44,8 @@ class ShareholderEquityProcessor(StatementProcessor):
             dfs.append(pd.DataFrame([data_list], columns=column_index, index=period_index))
 
         # return super().get_data_frames(since, to)
-        return pd.concat(dfs)
+        print(self.__tag, "dfs = ", dfs)
+        return pd.concat(dfs) if len(dfs) > 0 else None
 
     def get_data_frame(self, year, season):
         return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})

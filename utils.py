@@ -41,3 +41,19 @@ def get_time_lines(since=None, to=None):
         time_lines.append({'year': year, 'season': season})
     print("\n")
     return time_lines
+
+
+def get_recent_seasons(count=0):
+    time_lines = []
+    now = datetime.now()
+    year = now.year
+    season = int((now.month - 1) / 3) + 1
+    for i in range(count):
+        # print("(", year, ",", season, ")")
+        time_lines.insert(0, {'year': year, 'season': season})
+        season = season - 1
+        if season == 0:
+            season = 4
+            year = year - 1
+    print(time_lines)
+    return time_lines

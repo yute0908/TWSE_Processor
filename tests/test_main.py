@@ -13,7 +13,7 @@ from rdss.income_statement import SimpleIncomeStatementProcessor
 from fetcher import DataFetcher
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
-from utils import get_time_lines
+from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor
 
 
@@ -112,9 +112,15 @@ class MainTest(unittest.TestCase):
         print(stock_count)
 
     def test_roe(self):
-        roe_utils.get_in_season(2330, 2018, 2)
-        pass
+        # roe_utils.get_in_season(2330, 2018, 4)
+        roe_utils.get_recent_four_season(2330)
 
     def test_get_matrix_level(self):
         pass
 
+    def test_generate_time_lines(self):
+        self.assertEqual(len(get_recent_seasons(0)), 0)
+        self.assertEqual(len(get_recent_seasons(1)), 1)
+        self.assertEqual(len(get_recent_seasons(2)), 2)
+        self.assertEqual(len(get_recent_seasons(3)), 3)
+        self.assertEqual(len(get_recent_seasons(4)), 4)
