@@ -1,4 +1,5 @@
 import os
+import traceback
 from urllib.parse import urlencode
 
 import pandas as pd
@@ -33,14 +34,17 @@ class PriceMeasurementProcessor(DataProcessor):
         driver.quit()
         file_path = os.path.join(path, "BzPerformance.html")
         print("path2 = ", file_path)
-        df = pd.read_html(file_path)[0]
+        try:
+            df = pd.read_html(file_path)[0]
+            df2 = df[[0, 4]]
+            df2 = df2.rename(columns={0: '年度', 4: '平均股價'})
+            df2 = df2.set_index(['年度'])
+            df2.index = pd.PeriodIndex(df2.index, freq='A')
 
-        df2 = df[[0, 4]]
-        df2 = df2.drop([0])
-        df2 = df2.rename(columns={0: '年度', 4: '平均股價'})
-        df2 = df2.set_index(['年度'])
-        df2.index = pd.to_datetime(df2.index, format='%Y')
-        print(df2.index)
-
-        os.remove(file_path)
+        except Exception as inst:
+            print("get exception", inst)
+            traceback.print_tb(inst.__traceback__)
+            return None
+        finally:
+            os.remove(file_path)
         return df2

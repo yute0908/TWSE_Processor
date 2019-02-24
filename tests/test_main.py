@@ -56,14 +56,14 @@ class MainTest(unittest.TestCase):
         # data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2018, 'season': 2})
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
-        data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2017})
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        # data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2017})
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
         data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2017, 'season': 2})
         print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
-        data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2018, 'season': 3})
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        # data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2018, 'season': 3})
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
 
     def test_request_balance_sheet(self):
@@ -82,7 +82,7 @@ class MainTest(unittest.TestCase):
         pass
 
     def test_price_measurement(self):
-        price_measurement_processor = PriceMeasurementProcessor(4303)
+        price_measurement_processor = PriceMeasurementProcessor(2330)
         df = price_measurement_processor.get_data_frame()
         self.assertIsNotNone(df)
         print(df.loc[:, ['平均股價']])
@@ -113,10 +113,14 @@ class MainTest(unittest.TestCase):
 
     def test_roe(self):
         # roe_utils.get_in_season(2330, 2018, 4)
-        roe_utils.get_recent_four_season(2330)
+        # roe_utils.get_recent_four_season(2330)
+        roe_utils.get_in_year(2330, 2017)
+        # roe_utils.get_in_year(2330, 2017)
+
 
     def test_get_matrix_level(self):
         pass
+
 
     def test_generate_time_lines(self):
         self.assertEqual(len(get_recent_seasons(0)), 0)
