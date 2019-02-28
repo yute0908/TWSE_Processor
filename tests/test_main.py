@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup
 from tabulate import tabulate
 
 import roe_utils
+from evaluation_utils import get_matrix_level, get_cash_flow_per_share
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import _CashFlowStatementFetcher, CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -65,7 +66,6 @@ class MainTest(unittest.TestCase):
         # data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2018, 'season': 3})
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
-
     def test_request_balance_sheet(self):
         balance_sheet_processor = SimpleBalanceSheetProcessor(2330)
         data_frame = balance_sheet_processor.get_data_frame(2018, 2)
@@ -93,18 +93,13 @@ class MainTest(unittest.TestCase):
         # data_frame = cash_flow_processor.get_data_frame(2017, 2)
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
-        # cash_flow_processor.get_data_frames(since={"year": 2016, "season": 2})
-
-        data_frame = cash_flow_processor.get_data_frames({'year': 2018})
+        # data_frame = cash_flow_processor.get_data_frames(since={"year": 2016, "season": 2})
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        data_frame = cash_flow_processor.get_data_frames(since={"year": 2013})
         print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
-        stock_count_processor = StockCountProcessor()
-        stock_count = stock_count_processor.get_stock_count(2330, 2018)
-        # free_cash_flow_per_share = [cf / stock_count * 1000 for cf in data_frame['業主盈餘現金流']]
-        # print(free_cash_flow_per_share)
-        data_frame = data_frame.assign(每股業主盈餘現金流=pd.Series([cf / stock_count * 1000 for cf in data_frame['業主盈餘現金流']]).values)
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
-
+    def test_cash_flow_per_share(self):
+        get_cash_flow_per_share(2330, {'year': 2018})
 
     def test_stock_count(self):
         stock_count_processor = StockCountProcessor()
@@ -112,15 +107,14 @@ class MainTest(unittest.TestCase):
         print(stock_count)
 
     def test_roe(self):
-        # roe_utils.get_in_season(2330, 2018, 4)
+        roe_utils.get_roe_in_season(2330, 2018, 4)
         # roe_utils.get_recent_four_season(2330)
-        roe_utils.get_in_year(2330, 2017)
+        # roe_utils.get_roe_in_year(2330, 2017)
         # roe_utils.get_in_year(2330, 2017)
-
+        # roe_utils.get_roe_in_year(2330, 2019)
 
     def test_get_matrix_level(self):
-        pass
-
+        get_matrix_level(2330, 2011)
 
     def test_generate_time_lines(self):
         self.assertEqual(len(get_recent_seasons(0)), 0)

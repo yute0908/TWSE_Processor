@@ -2,6 +2,7 @@ import pandas as pd
 import traceback
 
 from bs4 import BeautifulSoup
+from idna import unicode
 
 from fetcher import DataFetcher
 from rdss.statement_processor import StatementProcessor
@@ -42,6 +43,8 @@ class CashFlowStatementProcessor(StatementProcessor):
                 continue
             if season > 1:
                 cache_data_dict = self._get_data_dict(self._fetch_fields, year, season - 1)
+                if data_dict is None or cache_data_dict is None:
+                    print('get None value in year ', year, ' season ', season, " data_dict = ", data_dict, " cache_data_dic = ", cache_data_dict)
                 for key in self._fetch_fields:
                     data_dict[key] = data_dict.get(key, 0) - cache_data_dict.get(key, 0)
             else:
@@ -54,7 +57,7 @@ class CashFlowStatementProcessor(StatementProcessor):
             period_index = pd.PeriodIndex(start=pd.Period(str_period, freq='Q'), end=pd.Period(str_period, freq='Q'),
                                           freq='Q')
             dfs.append(pd.DataFrame([data_dict.values()], columns=data_dict.keys(), index=period_index))
-        return pd.concat(dfs)
+        return None if len(dfs) == 0 else pd.concat(dfs)
 
     def get_data_frame(self, year, season):
         return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})
@@ -82,6 +85,12 @@ class CashFlowStatementProcessor(StatementProcessor):
 
         except Exception as inst:
             print("get exception", inst)
+            print("year = ", year, "result=", bs.prettify())
+
+            fonts = bs.find_all('font')
+            for font in fonts:
+                print("font = ", font.string, " ", unicode(font.string))
+
             traceback.print_tb(inst.__traceback__)
             return None
         # print(data_dict)

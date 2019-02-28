@@ -7,23 +7,13 @@ from rdss.shareholder_equity import ShareholderEquityProcessor
 from utils import get_recent_seasons, get_time_lines
 
 
-def get_in_season(stock_id, year, season):
-    shareholder_equity_processor = ShareholderEquityProcessor(stock_id)
-    df_shareholder_equity = shareholder_equity_processor.get_data_frame(year, season)
-    income_statement_processor = SimpleIncomeStatementProcessor(stock_id)
-    df_income_statement = income_statement_processor.get_data_frame(year, season)
-    if df_shareholder_equity is None or df_income_statement is None:
-        return None
-    str_period = "{}Q{}".format(year, season)
-    print(df_shareholder_equity.loc[str_period])
-    print(df_income_statement.loc[str_period])
-    roe = df_income_statement.loc[str_period, '稅後淨利'] / ((df_shareholder_equity.loc[str_period, ('權益總額', '期初餘額')] +
-                                                          df_shareholder_equity.loc[str_period, ('權益總額', '期末餘額')]) / 2)
-    print(roe)
+def get_roe_in_season(stock_id, year, season):
+    roe = _get_for_times(stock_id, [{'year': year, 'season': season}])
+    print('roe = ', roe)
     return roe
 
 
-def get_recent_four_season(stock_id):
+def get_roe_recent_four_season(stock_id):
     count = 4
     roe = None
 
@@ -34,10 +24,11 @@ def get_recent_four_season(stock_id):
     return roe
 
 
-def get_in_year(stock_id, year):
+def get_roe_in_year(stock_id, year):
     time_lines = get_time_lines(since={'year': year, 'season': 1}, to={'year': year, 'season': 4})
-    print(time_lines)
-    print("get in year ", year, ":", _get_for_times(stock_id, time_lines=time_lines))
+    roe = _get_for_times(stock_id, time_lines=time_lines)
+    print("get in year ", year, ":", roe)
+    return roe
 
 
 def _get_for_times(stock_id, time_lines):
