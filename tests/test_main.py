@@ -1,17 +1,15 @@
-import pandas as pd
 import unittest
 
 import requests
-from bs4 import BeautifulSoup
 from tabulate import tabulate
 
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
-from rdss.cashflow_statment import _CashFlowStatementFetcher, CashFlowStatementProcessor
+from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.income_statement import SimpleIncomeStatementProcessor
-from fetcher import DataFetcher
+from rdss.fetcher import DataFetcher
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
 from utils import get_recent_seasons

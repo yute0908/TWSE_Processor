@@ -3,7 +3,7 @@ import traceback
 
 from bs4 import BeautifulSoup
 
-from fetcher import DataFetcher
+from rdss.fetcher import DataFetcher
 from rdss.statement_processor import StatementProcessor
 from utils import get_time_lines
 

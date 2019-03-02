@@ -4,7 +4,7 @@ import traceback
 from bs4 import BeautifulSoup
 
 from data_processor import DataProcessor
-from fetcher import DataFetcher
+from rdss.fetcher import DataFetcher
 from rdss.parsers import DataFrameParser
 
 

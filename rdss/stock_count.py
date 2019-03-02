@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 
-from fetcher import DataFetcher
+from rdss.fetcher import DataFetcher
 
 
 class StockCountProcessor:
@@ -32,5 +32,7 @@ class StockCountProcessor:
                 return int(r[3])
 
         return 0
+
+
 def has_table_width_no_class(tag):
     return tag.name == 'table' and tag.has_attr('width') and not tag.has_attr('class')

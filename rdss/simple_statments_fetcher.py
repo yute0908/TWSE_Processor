@@ -1,4 +1,4 @@
-from fetcher import DataFetcher
+from rdss.fetcher import DataFetcher
 
 
 class _SimpleStatementsFetcher(DataFetcher):
