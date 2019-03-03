@@ -12,12 +12,12 @@ def get_matrix_level(stock_id, since_year, to_year=None):
     if since_year is None:
         return None
 
-    get_current = False
+    get_recent_four_seasons = False
     if to_year is not None and since_year > to_year:
         return None
     else:
         if to_year is None:
-            get_current = True
+            get_recent_four_seasons = True
             to_year = datetime.now().year
 
     dfs = []
@@ -29,9 +29,11 @@ def get_matrix_level(stock_id, since_year, to_year=None):
     print(data_frame)
     return data_frame
 
+
 def _get_matrix_level_in_year(stock_id, year):
     roe = get_roe_in_year(stock_id, year)
-    cash_flow_per_share_df = get_cash_flow_per_share(stock_id, {'year': year})
+    cash_flow_per_share_df = get_cash_flow_per_share(stock_id, since={'year': year, 'season': 1},
+                                                     to={'year': year, 'season': 4})
     if roe is None or cash_flow_per_share_df is None:
         return None
     cash_flow_per_share = cash_flow_per_share_df['每股業主盈餘現金流'].sum()

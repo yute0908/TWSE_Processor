@@ -35,14 +35,16 @@ class MainTest(unittest.TestCase):
 
     def test_request_income_statement(self):
         income_statement_processor = SimpleIncomeStatementProcessor(2330)
-        data_frame = income_statement_processor.get_data_frame(2018, 2)
+        # data_frame = income_statement_processor.get_data_frame(2018, 2)
         # self.assertIsNotNone(data_frame)
         # self.assertTrue(data_frame.loc['2018Q2', 'EPS'] is not None)
         # self.assertTrue(data_frame.loc['2018Q2', '稅後淨利'] is not None)
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
-        data_frame = income_statement_processor.get_data_frames(since={'year': 2017, 'season': 1},
-                                                                to={'year': 2018, 'season': 2})
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        # data_frame = income_statement_processor.get_data_frames(since={'year': 2017, 'season': 1},
+        #                                                         to={'year': 2018, 'season': 2})
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        data_frame = income_statement_processor.get_data_frames(since={'year': 2017})
+        print(data_frame)
 
     def test_shareholder_equity(self):
         shareholder_euity_processor = ShareholderEquityProcessor(2330)
@@ -69,6 +71,8 @@ class MainTest(unittest.TestCase):
         data_frame = balance_sheet_processor.get_data_frame(2018, 2)
         self.assertIsNotNone(data_frame)
         self.assertTrue(data_frame.loc['2018Q2', '每股淨值'] is not None)
+        data_frame = balance_sheet_processor.get_data_frames(since={'year': 2018})
+        print(data_frame)
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
     def test_dividend_policy(self):
@@ -77,7 +81,7 @@ class MainTest(unittest.TestCase):
         self.assertIsNotNone(data_frame)
         self.assertTrue(data_frame.loc[:, ['現金股利']] is not None)
         self.assertTrue(data_frame.loc[:, ['股息']] is not None)
-        pass
+        print(data_frame)
 
     def test_price_measurement(self):
         price_measurement_processor = PriceMeasurementProcessor(2330)
@@ -112,7 +116,7 @@ class MainTest(unittest.TestCase):
         # roe_utils.get_roe_in_year(2330, 2019)
 
     def test_get_matrix_level(self):
-        get_matrix_level(2330, 2011)
+        get_matrix_level(2330, 2013)
 
     def test_generate_time_lines(self):
         self.assertEqual(len(get_recent_seasons(0)), 0)
