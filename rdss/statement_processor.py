@@ -17,7 +17,7 @@ class StatementProcessor(DataProcessor, abc.ABC):
                 dfs.append(data_frame)
 
         # return
-        return pd.concat(dfs, sort=True)
+        return pd.concat(dfs, sort=True) if len(dfs) > 0 else None
 
     @abc.abstractmethod
     def get_data_frame(self, year, season):

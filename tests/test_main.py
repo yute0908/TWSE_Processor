@@ -1,10 +1,11 @@
+import pandas as pd
 import unittest
 
 import requests
 from tabulate import tabulate
 
 import roe_utils
-from evaluation_utils import get_matrix_level, get_cash_flow_per_share
+from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_evaluate_performance, get_predict_evaluate
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -12,6 +13,7 @@ from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.fetcher import DataFetcher
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
+from twse_crawler import gen_output_path
 from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor
 
@@ -68,16 +70,23 @@ class MainTest(unittest.TestCase):
 
     def test_request_balance_sheet(self):
         balance_sheet_processor = SimpleBalanceSheetProcessor(2330)
-        data_frame = balance_sheet_processor.get_data_frame(2018, 2)
-        self.assertIsNotNone(data_frame)
-        self.assertTrue(data_frame.loc['2018Q2', '每股淨值'] is not None)
-        data_frame = balance_sheet_processor.get_data_frames(since={'year': 2018})
+        # data_frame = balance_sheet_processor.get_data_frame(2018, 2)
+        # self.assertIsNotNone(data_frame)
+        # self.assertTrue(data_frame.loc['2018Q2', '每股淨值'] is not None)
+        #
+        data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016})
         print(data_frame)
+        # print(data_frame.loc["2016Q1", '每股淨值'])
+        print(data_frame.iloc[[-1, -8], ].loc[:, '每股淨值'].sum())
+        #
+        # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2019})
+        # print(data_frame)
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
     def test_dividend_policy(self):
         dividend_policy_processor = DividendPolicyProcessor(6294)
-        data_frame = dividend_policy_processor.get_data_frame(2017, None)
+        # data_frame = dividend_policy_processor.get_data_frame(2017, None)
+        data_frame = dividend_policy_processor.get_data_frames({'year': 2017}, None)
         self.assertIsNotNone(data_frame)
         self.assertTrue(data_frame.loc[:, ['現金股利']] is not None)
         self.assertTrue(data_frame.loc[:, ['股息']] is not None)
@@ -87,7 +96,7 @@ class MainTest(unittest.TestCase):
         price_measurement_processor = PriceMeasurementProcessor(2330)
         df = price_measurement_processor.get_data_frame()
         self.assertIsNotNone(df)
-        print(df.loc[:, ['平均股價']])
+        print(df.loc['2019', '平均股價'], type(df.loc['2019', '平均股價']))
         self.assertTrue(df.loc[:, ['平均股價']] is not None)
 
     def test_cash_flow_statement(self):
@@ -117,6 +126,28 @@ class MainTest(unittest.TestCase):
 
     def test_get_matrix_level(self):
         get_matrix_level(2330, 2013)
+
+    def test_get_evaluate_performance(self):
+        # stock_data = get_evaluate_performance('2330', 2014)
+        # path = gen_output_path('data', 'performance_2330.xlsx')
+        stock_data = get_evaluate_performance('6294', 2014)
+        from stock_data import store
+        store(stock_data)
+
+    def test_predict_evaluation(self):
+        from stock_data import read
+        stock_data = read('2330')
+        self.assertIsNotNone(stock_data)
+        s_2330 = get_predict_evaluate(stock_data).rename('2330')
+        result = pd.concat([s_2330], axis=1)
+        print('result 1', result.T)
+
+        stock_data = read('6294')
+        s_6294 = get_predict_evaluate(stock_data).rename('6294')
+        self.assertIsNotNone(stock_data)
+
+        result = pd.concat([result, s_6294], axis=1)
+        print('result 2', result.T)
 
     def test_generate_time_lines(self):
         self.assertEqual(len(get_recent_seasons(0)), 0)

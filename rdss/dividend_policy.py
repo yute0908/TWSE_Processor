@@ -6,16 +6,30 @@ from bs4 import BeautifulSoup
 from data_processor import DataProcessor
 from rdss.fetcher import DataFetcher
 from rdss.parsers import DataFrameParser
+from rdss.statement_processor import StatementProcessor
+from rdss.utils import normalize_params
 
 
-class DividendPolicyProcessor(DataProcessor):
+class DividendPolicyProcessor(StatementProcessor):
 
     def __init__(self, stock_id):
         super().__init__(stock_id)
         self.__data_fetcher = _DividendPolicyFetcher()
         self.__data_parser = _DividendPolicyParser()
 
-    def get_data_frame(self, year, season):
+    def get_data_frames(self, since, to=None):
+        params = normalize_params(self._stock_id, since.get('year'), to.get('year') if to is not None else None)
+        since_year = params.get('since_year')
+        to_year = params.get('to_year')
+        print(params)
+        dfs = []
+        for year in range(since_year, to_year + 1):
+            df = self.get_data_frame(year)
+            if df is not None:
+                dfs.append(df)
+        return pd.concat(dfs, sort=True) if len(dfs) > 0 else None
+
+    def get_data_frame(self, year, season=None):
         result = self.__data_fetcher.fetch({'stock_id': self._stock_id, 'year': year - 1911})
         if result.ok is False:
             print('get content fail')
@@ -55,5 +69,8 @@ class _DividendPolicyParser(DataFrameParser):
             traceback.print_tb(inst.__traceback__)
             return
 
-        period_index = pd.PeriodIndex(start=pd.Period(process_year, freq='Y'), end=pd.Period(process_year, freq='Y'), freq='Y')
+        period_index = pd.PeriodIndex(start=pd.Period(process_year, freq='Y'), end=pd.Period(process_year, freq='Y'),
+                                      freq='Y')
+        # print('values = ', [list(dict_datas.values())], ' columns = ', list(dict_datas.keys()), ' index = ', period_index)
+        # return pd.DataFrame([list(dict_datas.values())], columns=list(dict_datas.keys()), index=period_index)
         return pd.DataFrame([dict_datas.values()], columns=dict_datas.keys(), index=period_index)

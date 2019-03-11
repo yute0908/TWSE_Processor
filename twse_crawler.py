@@ -47,7 +47,7 @@ def get_dataframe(table):
     return df
 
 
-def gen_output_path(directory='', filename=None):
+def gen_output_path(directory, filename=None):
     if directory:
         os.makedirs(directory, exist_ok=True)
         if not filename:

@@ -65,7 +65,7 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
             return dict_datas
 
         except Exception as inst:
-            print("get exception", inst)
+            print("get exception", inst, " when get data in year ", year, ' and season ', season)
             traceback.print_tb(inst.__traceback__)
             return None
 
