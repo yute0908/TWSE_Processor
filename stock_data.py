@@ -12,13 +12,13 @@ class StockData:
 
 
 def read(stock_id, path=None):
-    file = open(path if path is not None else gen_output_path('data', 'performance_{0}.xlsx'.format(str(stock_id))),
-                'rb')
-    if file is None:
-        return None
-    else:
+    try:
+        file = open(path if path is not None else gen_output_path('data', 'performance_{0}.xlsx'.format(str(stock_id))),
+                    'rb')
         return StockData(stock_id, pd.read_excel(file, sheet_name='performance'),
                          pd.read_excel(file, sheet_name='statement'))
+    except FileNotFoundError as err:
+        return None
 
 
 def store(stockData, directory=None, filename=None):

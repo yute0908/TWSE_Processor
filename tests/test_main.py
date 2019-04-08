@@ -5,7 +5,8 @@ import requests
 from tabulate import tabulate
 
 import roe_utils
-from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_evaluate_performance, get_predict_evaluate
+from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_evaluate_performance, get_predict_evaluate, \
+    generate_predictions
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -146,8 +147,11 @@ class MainTest(unittest.TestCase):
         s_6294 = get_predict_evaluate(stock_data).rename('6294')
         self.assertIsNotNone(stock_data)
 
-        result = pd.concat([result, s_6294], axis=1)
+        result.loc[:, '6294'] = s_6294
         print('result 2', result.T)
+
+        result.loc[:, '6294'] = s_6294
+        print('result 3', result.T)
 
     def test_generate_time_lines(self):
         self.assertEqual(len(get_recent_seasons(0)), 0)
@@ -155,3 +159,6 @@ class MainTest(unittest.TestCase):
         self.assertEqual(len(get_recent_seasons(2)), 2)
         self.assertEqual(len(get_recent_seasons(3)), 3)
         self.assertEqual(len(get_recent_seasons(4)), 4)
+
+    def test_integrate(self):
+        generate_predictions(['2330', '6294'])

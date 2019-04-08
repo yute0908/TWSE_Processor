@@ -11,6 +11,7 @@ from rdss.stock_count import StockCountProcessor
 from rdss.utils import normalize_params
 from roe_utils import get_roe_in_year
 from stock_data import StockData
+from twse_crawler import gen_output_path
 from value_measurement import PriceMeasurementProcessor
 
 
@@ -171,3 +172,56 @@ def get_predict_evaluate(stock_data):
     return pd.Series(
         {'股價': stock.price[-1], '本益比': predict_pe, '彼得林區評價': peter_lynch_value, '彼得林區評價2倍股價': peter_lynch_reverse(2.0),
          '彼得林區評價1.5倍股價': peter_lynch_reverse(1.5), '彼得林區評價1倍股價': peter_lynch_reverse(1.0)})
+
+
+def generate_predictions(stock_ids=[]):
+    try:
+        file = open(gen_output_path('data', 'evaluations.xlsx'),'rb')
+        df_predictions = pd.read_excel(file, sheet_name='predictions', dtype={'股號': str})
+        df_predictions = df_predictions.set_index('股號')
+    except FileNotFoundError as err:
+        df_predictions = None
+    # print('index =', df_predictions.index)
+    # print(df_predictions)
+    # df_predictions.reset_index()
+    # print('index =', df_predictions.index)
+    # df_predictions.reindex(df_predictions.index.astype('str'))
+    # print('index =', df_predictions.index)
+    #
+    # print(df_predictions)
+
+
+    for stock_id in stock_ids:
+        str_stock_id = str(stock_id)
+        s_stock = get_predict_evaluate(get_stock_data(stock_id))
+        if df_predictions is None:
+            # df_predictions = pd.DataFrame(columns=s_stock.index, data=[s_stock.values], index=[str_stock_id])
+            df_predictions = pd.DataFrame(columns=s_stock.index, data=[s_stock.values])
+            df_predictions['股號'] = [str_stock_id]
+            df_predictions = df_predictions.set_index('股號')
+            print("first record")
+            print(df_predictions)
+            print("index = ", df_predictions.index)
+        else:
+            print('get index = ', df_predictions.index)
+            df_predictions.loc[str_stock_id] = s_stock.values
+            # df_predictions[str_stock_id] = s_stock.values
+            # df_predictions = df_predictions.assign(str_stock_id=s_stock.values)
+            # if str_stock_id in df_predictions.index:
+            #     df_predictions[str_stock_id] = s_stock.values.insert(0)
+            # else:
+            #     df_predictions.loc[str_stock_id] = s_stock.values
+    print('result = ', df_predictions)
+    output_path = gen_output_path('data','evaluations.xlsx')
+    with pd.ExcelWriter(output_path) as writer:
+        df_predictions.to_excel(writer, sheet_name='predictions')
+
+def get_stock_data(stock_id):
+    from stock_data import read
+    str_stock_id = str(stock_id)
+    stock_data = read(str_stock_id)
+    if stock_data is None:
+        stock_data = get_evaluate_performance(str_stock_id, 2014)
+        from stock_data import store
+        store(stock_data)
+    return stock_data
