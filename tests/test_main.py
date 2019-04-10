@@ -161,4 +161,4 @@ class MainTest(unittest.TestCase):
         self.assertEqual(len(get_recent_seasons(4)), 4)
 
     def test_integrate(self):
-        generate_predictions(['2330', '6294'])
+        generate_predictions(['2330', '6294', '3213', '8210', '8905', '8103', '1227'])

@@ -21,6 +21,7 @@ class PriceMeasurementProcessor(DataProcessor):
 
         params = {'STOCK_ID': self._stock_id}
         url = "https://goodinfo.tw/StockInfo/StockBzPerformance.asp?" + urlencode(params)
+        print('url = ', url)
         profile = FirefoxProfile()
         profile.set_preference("browser.download.panel.shown", False)
         profile.set_preference("browser.download.folderList", 2)
@@ -39,7 +40,7 @@ class PriceMeasurementProcessor(DataProcessor):
             df2 = df[[0, 4]]
             df2 = df2.rename(columns={0: '年度', 4: '平均股價'})
             df2 = df2.set_index(['年度'])
-            df2.index = pd.PeriodIndex(df2.index, freq='A')
+            # df2.index = pd.PeriodIndex(df2.index, freq='A')
 
         except Exception as inst:
             print("get exception", inst)
