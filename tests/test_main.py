@@ -6,7 +6,7 @@ from tabulate import tabulate
 
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_evaluate_performance, get_predict_evaluate, \
-    generate_predictions
+    generate_predictions, create_stock_datas, get_stock_codes
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -78,7 +78,7 @@ class MainTest(unittest.TestCase):
         data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016})
         print(data_frame)
         # print(data_frame.loc["2016Q1", '每股淨值'])
-        print(data_frame.iloc[[-1, -8], ].loc[:, '每股淨值'].sum())
+        print(data_frame.iloc[[-1, -8],].loc[:, '每股淨值'].sum())
         #
         # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2019})
         # print(data_frame)
@@ -131,7 +131,7 @@ class MainTest(unittest.TestCase):
     def test_get_evaluate_performance(self):
         # stock_data = get_evaluate_performance('2330', 2014)
         # path = gen_output_path('data', 'performance_2330.xlsx')
-        stock_data = get_evaluate_performance('6294', 2014)
+        stock_data = get_evaluate_performance('1240', 2014)
         from stock_data import store
         store(stock_data)
 
@@ -161,4 +161,6 @@ class MainTest(unittest.TestCase):
         self.assertEqual(len(get_recent_seasons(4)), 4)
 
     def test_integrate(self):
-        generate_predictions(['2330', '6294', '3213', '8210', '8905', '8103', '1227'])
+        # generate_predictions(['2395'])
+        create_stock_datas(get_stock_codes(stock_type='上市'))
+        create_stock_datas(get_stock_codes(stock_type='上櫃'))

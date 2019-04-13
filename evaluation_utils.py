@@ -1,6 +1,10 @@
 import math
+import time
+import traceback
 
 import pandas as pd
+import twstock
+from selenium.common.exceptions import WebDriverException
 from twstock import Stock
 
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
@@ -142,7 +146,11 @@ def get_evaluate_performance(stock_id, since_year, to_year=None):
         # print('兩年現金股利發放率 in ', year, ':', dividend_ratio_two_years)
         avg_roe_two_years = sum_of_eps_two_years / value_in_two_years
         growth_ratio_of_eps = avg_roe_two_years * (1 - dividend_ratio_two_years)
-        dividend_yield = dr_in_two_years / 2 / float(df_prices.loc[str(year), '平均股價'])
+        try:
+            dividend_yield = dr_in_two_years / 2 / float(df_prices.loc[str(year), '平均股價'])
+        except Exception as e:
+            print('get', e, ' when get price for ', stock_id, ' in ', year)
+            dividend_yield = float(0)
         results_index.append(str(year))
         results_data.append(
             {'兩年現金股利發放率': dividend_ratio_two_years, '兩年平均ROE': avg_roe_two_years, '保留盈餘成長率': growth_ratio_of_eps,
@@ -166,7 +174,8 @@ def get_predict_evaluate(stock_data):
     def peter_lynch_reverse(val):
         return (g + math.sqrt(math.pow(g, 2) + 4 * stock_data.df_performance.iloc[-1].at['現金股利'] * (
                 val / 100) / eps_last_four_season)) / (
-                2 * (val / 100) / eps_last_four_season)
+                       2 * (val / 100) / eps_last_four_season)
+
     print('彼得林區評價 2 = ', peter_lynch_reverse(2.0), ' 彼得林區評價 1.5 = ', peter_lynch_reverse(1.5), '彼得林區評價 1 = ',
           peter_lynch_reverse(1.0))
     return pd.Series(
@@ -176,7 +185,7 @@ def get_predict_evaluate(stock_data):
 
 def generate_predictions(stock_ids=[]):
     try:
-        file = open(gen_output_path('data', 'evaluations.xlsx'),'rb')
+        file = open(gen_output_path('data', 'evaluations.xlsx'), 'rb')
         df_predictions = pd.read_excel(file, sheet_name='predictions', dtype={'股號': str})
         df_predictions = df_predictions.set_index('股號')
     except FileNotFoundError as err:
@@ -189,7 +198,6 @@ def generate_predictions(stock_ids=[]):
     # print('index =', df_predictions.index)
     #
     # print(df_predictions)
-
 
     for stock_id in stock_ids:
         str_stock_id = str(stock_id)
@@ -212,16 +220,70 @@ def generate_predictions(stock_ids=[]):
             # else:
             #     df_predictions.loc[str_stock_id] = s_stock.values
     print('result = ', df_predictions)
-    output_path = gen_output_path('data','evaluations.xlsx')
+    output_path = gen_output_path('data', 'evaluations.xlsx')
     with pd.ExcelWriter(output_path) as writer:
         df_predictions.to_excel(writer, sheet_name='predictions')
+
 
 def get_stock_data(stock_id):
     from stock_data import read
     str_stock_id = str(stock_id)
     stock_data = read(str_stock_id)
     if stock_data is None:
-        stock_data = get_evaluate_performance(str_stock_id, 2014)
-        from stock_data import store
-        store(stock_data)
+        try:
+            print('get stock_data for ', stock_id)
+            stock_data = get_evaluate_performance(str_stock_id, 2014)
+            from stock_data import store
+            store(stock_data)
+        except IndexError as inst:
+            print("get exception IndexError: ", inst, " for ", stock_id)
+            traceback.print_tb(inst.__traceback__)
+            return None
+        except KeyError as ke:
+            print("get exception KeyError: ", ke, " for ", stock_id)
+            traceback.print_tb(ke.__traceback__)
+            return None
+        except AttributeError as ae:
+            print("get exception AttributeError: ", ae, " for ", stock_id)
+            traceback.print_tb(ae.__traceback__)
+            return None
+
     return stock_data
+
+
+def create_stock_datas(stock_codes=None):
+    print('stock_codes = ', stock_codes)
+    if stock_codes is None:
+        stock_list = list(filter(lambda x: x.type == '股票', list(twstock.codes.values())))
+        stock_codes = list(map(lambda x: x.code, stock_list))
+    retry = 0
+    for stock_code in stock_codes:
+        get_data = False
+        while get_data is False:
+            try:
+                get_stock_data(str(stock_code))
+                get_data = True
+                retry = 0
+            except Exception as e:
+                retry += 1
+                print("get exception", e)
+                traceback.print_tb(e.__traceback__)
+                if retry >= 10:
+                    print("retry for 10 times to get stock ", stock_code)
+                    exit(-1)
+                else:
+                    time.sleep(60 * 10)
+
+
+def get_stock_codes(stock_type='上市'):
+    if stock_type == '上市':
+        df_stocks = pd.read_csv(gen_output_path('data', '上市.csv'), engine='python')
+        list_stocks = df_stocks.loc[:, '公司代號'].values.tolist()
+    else:
+        if stock_type == '上櫃':
+            df_stocks = pd.read_csv(gen_output_path('data', '上櫃.csv'), engine='python')
+            list_stocks = df_stocks.loc[:, '公司代號'].values.tolist()
+        else:
+            list_stocks = None
+    print(list_stocks)
+    return list_stocks

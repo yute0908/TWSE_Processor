@@ -13,13 +13,15 @@ class DataFetcher:
 
     def fetch(self, params):
         self.wait_for_server()
-        result = self.session.post(self.url, params)
+        result = self.session.post(self.url, params, headers={'Connection':'close'})
         return result
 
     @staticmethod
     def wait_for_server():
-        DataFetcher._fetch_count += 1
-        if DataFetcher._fetch_count % 5 == 0:
-            sleep_time = 5 * (DataFetcher._backoff_window_count % 6 + 1)
-            DataFetcher._backoff_window_count += 1
-            time.sleep(sleep_time)
+        time.sleep(5)
+        # DataFetcher._fetch_count += 1
+        # if DataFetcher._fetch_count % 5 == 0:
+        #     sleep_time = 5 * (DataFetcher._backoff_window_count % 6 + 1)
+        #     DataFetcher._backoff_window_count += 1
+        #     time.sleep(sleep_time)
+

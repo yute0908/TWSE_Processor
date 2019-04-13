@@ -26,7 +26,7 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
         for time_line in time_lines:
             data_dict = self._get_data_dict(time_line.get('year'), time_line.get('season'))
             if data_dict is None:
-                break
+                continue
 
             if last_result is not None:
                 result = {k: (v - last_result[k]) for (k, v) in data_dict.items()}
@@ -46,10 +46,10 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
         return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})
 
     def _get_data_dict(self, year, season):
+        result = self.__data_fetcher.fetch({'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
+        if result.ok is False:
+            return None
         try:
-            result = self.__data_fetcher.fetch({'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
-            if result.ok is False:
-                return None
             dict_datas = {}
             bs = BeautifulSoup(result.content, 'html.parser')
             tables = bs.find_all('table', attrs={"class": "hasBorder", "align": "center", "width": "70%"})
