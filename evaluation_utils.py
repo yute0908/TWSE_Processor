@@ -185,9 +185,9 @@ def get_predict_evaluate(stock_data):
 
 def generate_predictions(stock_ids=[]):
     try:
-        file = open(gen_output_path('data', 'evaluations.xlsx'), 'rb')
-        df_predictions = pd.read_excel(file, sheet_name='predictions', dtype={'股號': str})
-        df_predictions = df_predictions.set_index('股號')
+        with open(gen_output_path('data', 'evaluations.xlsx'), 'rb') as file:
+            df_predictions = pd.read_excel(file, sheet_name='predictions', dtype={'股號': str})
+            df_predictions = df_predictions.set_index('股號')
     except FileNotFoundError as err:
         df_predictions = None
     # print('index =', df_predictions.index)
@@ -202,6 +202,8 @@ def generate_predictions(stock_ids=[]):
     for stock_id in stock_ids:
         str_stock_id = str(stock_id)
         s_stock = get_predict_evaluate(get_stock_data(stock_id))
+        if s_stock is None:
+            continue
         if df_predictions is None:
             # df_predictions = pd.DataFrame(columns=s_stock.index, data=[s_stock.values], index=[str_stock_id])
             df_predictions = pd.DataFrame(columns=s_stock.index, data=[s_stock.values])

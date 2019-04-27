@@ -162,5 +162,6 @@ class MainTest(unittest.TestCase):
 
     def test_integrate(self):
         # generate_predictions(['2395'])
-        create_stock_datas(get_stock_codes(stock_type='上市'))
-        create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        generate_predictions(get_stock_codes(stock_type='上市'))
+        # create_stock_datas(get_stock_codes(stock_type='上市'))
+        # create_stock_datas(get_stock_codes(stock_type='上櫃'))
