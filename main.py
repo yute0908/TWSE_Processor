@@ -1,6 +1,14 @@
+import socket
+import time
 import traceback
+from urllib.request import urlopen
 
 import pandas as pd
+import socks
+from stem import Signal
+from stem.control import Controller
+from stem.process import launch_tor_with_config
+from torrequest import TorRequest
 
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.income_statement import SimpleIncomeStatementProcessor
@@ -40,8 +48,25 @@ def store_data_frame(df, out_excel_name):
 #         df.to_excel(path, index=True, encoding='UTF-8')
 
 
+def _tor_process_exists():
+    try:
+      ctrl = Controller.from_port(port=9051)
+      ctrl.close()
+      return True
+    except:
+      return False
+
+def _launch_tor():
+    return launch_tor_with_config(
+      config={
+        'SocksPort': str(9050),
+        'ControlPort': str(9051)
+      },
+      take_ownership=True)
+
 if __name__ == "__main__":
     # execute only if run as a script
+    '''
     stock_id = 2330
     start = {"year": 2016, "season": 1}
     processor = SimpleIncomeStatementProcessor(stock_id)
@@ -51,6 +76,32 @@ if __name__ == "__main__":
     processor = SimpleBalanceSheetProcessor(stock_id)
     df = processor.get_data_frames(start)
     store_data_frame(df, 'balance_sheet_{0}.xlsx'.format(stock_id))
+    '''
+    '''
+    with TorRequest() as tr:
+        response = tr.get('http://ipecho.net/plain')
+        print(response.text)
+    '''
+    tor_proc = None
+    if not _tor_process_exists():
+        print('open tor process')
+        tor_proc = _launch_tor()
+
+    with Controller.from_port(port=9051) as controller:
+        # controller.authenticate(password='my_pwd')
+        controller.authenticate()
+        socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 9050)
+        socket.socket = socks.socksocket
+
+        for i in range(0, 3):
+            newIP = urlopen("http://icanhazip.com").read()
+            print("NewIP Address: %s" % newIP)
+            controller.signal(Signal.NEWNYM)
+            if not controller.is_newnym_available():
+                print("Waitting time for Tor to change IP: " + str(controller.get_newnym_wait()) + " seconds")
+                time.sleep(controller.get_newnym_wait())
+        controller.close()
+    tor_proc.terminate()
 
     # store_data_frame(df, 2330)
     # data_frame = get_income_statement(2330, {"year": 107})

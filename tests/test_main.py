@@ -161,7 +161,8 @@ class MainTest(unittest.TestCase):
         self.assertEqual(len(get_recent_seasons(4)), 4)
 
     def test_integrate(self):
-        # generate_predictions(['2395'])
+        # generate_predictions(['1470'])
         generate_predictions(get_stock_codes(stock_type='上市'))
+        # create_stock_datas(['1341'])
         # create_stock_datas(get_stock_codes(stock_type='上市'))
         # create_stock_datas(get_stock_codes(stock_type='上櫃'))

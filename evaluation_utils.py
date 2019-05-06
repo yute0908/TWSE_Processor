@@ -1,11 +1,20 @@
 import math
+import socket
+import sys
 import time
 import traceback
+from urllib.request import urlopen
 
 import pandas as pd
+import requests
+import socks
 import twstock
 from selenium.common.exceptions import WebDriverException
+from stem import Signal
+from stem.control import Controller
+from stem.process import launch_tor_with_config
 from twstock import Stock
+from urllib3.exceptions import NewConnectionError
 
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
@@ -18,6 +27,25 @@ from stock_data import StockData
 from twse_crawler import gen_output_path
 from value_measurement import PriceMeasurementProcessor
 
+proxy_port = 9050
+ctrl_port = 9051
+
+
+def _tor_process_exists():
+    try:
+      ctrl = Controller.from_port(port=ctrl_port)
+      ctrl.close()
+      return True
+    except:
+      return False
+
+def _launch_tor():
+    return launch_tor_with_config(
+      config={
+        'SocksPort': str(proxy_port),
+        'ControlPort': str(ctrl_port)
+      },
+      take_ownership=True)
 
 def get_matrix_level(stock_id, since_year, to_year=None):
     params = normalize_params(stock_id, since_year, to_year)
@@ -164,9 +192,10 @@ def get_evaluate_performance(stock_id, since_year, to_year=None):
 
 def get_predict_evaluate(stock_data):
     stock = Stock(stock_data.stock_id)
-    print(stock.price)
+    # print(stock.price)
     eps_last_four_season = stock_data.df_statement.iloc[-4:].loc[:, 'EPS'].sum()
-    predict_pe = stock.price[-1] / eps_last_four_season
+    print('stock_price = ', stock.price[-1], ' eps_last_four_season = ', eps_last_four_season)
+    predict_pe = next((value for value in reversed(stock.price) if value is not None), 0.0) / eps_last_four_season
     peter_lynch_value = stock_data.df_performance.iloc[-1].at['高登模型預期報酬率'] / predict_pe * 100
     print('本益比 = ', predict_pe, '彼得林區評價 = ', peter_lynch_value)
     g = stock_data.df_performance.iloc[-1].at['保留盈餘成長率']
@@ -198,10 +227,55 @@ def generate_predictions(stock_ids=[]):
     # print('index =', df_predictions.index)
     #
     # print(df_predictions)
+    tor_proc = None
+    if not _tor_process_exists():
+        print('open tor process')
+        tor_proc = _launch_tor()
 
+    controller = Controller.from_port(port=ctrl_port)
+    controller.authenticate()
+    socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", proxy_port)
+    socket.socket = socks.socksocket
+
+    newIP = urlopen("http://icanhazip.com").read()
+    print("NewIP Address: %s" % newIP)
+    error_stock_ids = []
     for stock_id in stock_ids:
         str_stock_id = str(stock_id)
-        s_stock = get_predict_evaluate(get_stock_data(stock_id))
+        if df_predictions is not None and str_stock_id in df_predictions.index:
+            continue
+        try:
+            stock_data = get_stock_data(stock_id)
+        except:
+            stock_data = None
+
+        if stock_data is None:
+            continue
+        break_loop = False
+
+        while True:
+            try:
+                s_stock = get_predict_evaluate(stock_data)
+                break
+            except (IndexError, requests.exceptions.ConnectionError, NewConnectionError, socks.SOCKS5Error) as e:
+                print("get exception: ", e, " for ", stock_id)
+                controller.signal(Signal.NEWNYM)
+                if not controller.is_newnym_available():
+                    print("Waiting time for Tor to change IP: " + str(controller.get_newnym_wait()) + " seconds")
+                    time.sleep(controller.get_newnym_wait())
+                    newIP = urlopen("http://icanhazip.com").read()
+                    print("NewIP Address: %s" % newIP)
+
+            except Exception as e:
+                print("Unexpected error:", e)
+                traceback.print_tb(e.__traceback__)
+                print('Get error when get stock ', stock_id, ' stock_data = ', stock_data)
+                error_stock_ids.append(stock_id)
+                # break_loop = True
+                s_stock = None
+                break
+        if break_loop:
+            break
         if s_stock is None:
             continue
         if df_predictions is None:
@@ -215,16 +289,14 @@ def generate_predictions(stock_ids=[]):
         else:
             print('get index = ', df_predictions.index)
             df_predictions.loc[str_stock_id] = s_stock.values
-            # df_predictions[str_stock_id] = s_stock.values
-            # df_predictions = df_predictions.assign(str_stock_id=s_stock.values)
-            # if str_stock_id in df_predictions.index:
-            #     df_predictions[str_stock_id] = s_stock.values.insert(0)
-            # else:
-            #     df_predictions.loc[str_stock_id] = s_stock.values
+    controller.close()
+    tor_proc.terminate()
+
     print('result = ', df_predictions)
     output_path = gen_output_path('data', 'evaluations.xlsx')
     with pd.ExcelWriter(output_path) as writer:
         df_predictions.to_excel(writer, sheet_name='predictions')
+    print('error_ids = ', error_stock_ids)
 
 
 def get_stock_data(stock_id):
