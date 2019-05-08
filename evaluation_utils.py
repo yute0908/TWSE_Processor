@@ -195,10 +195,13 @@ def get_predict_evaluate(stock_data):
     # print(stock.price)
     eps_last_four_season = stock_data.df_statement.iloc[-4:].loc[:, 'EPS'].sum()
     print('stock_price = ', stock.price[-1], ' eps_last_four_season = ', eps_last_four_season)
-    predict_pe = next((value for value in reversed(stock.price) if value is not None), 0.0) / eps_last_four_season
-    peter_lynch_value = stock_data.df_performance.iloc[-1].at['高登模型預期報酬率'] / predict_pe * 100
-    print('本益比 = ', predict_pe, '彼得林區評價 = ', peter_lynch_value)
+    latest_price = next((value for value in reversed(stock.price) if value is not None), 0.0)
+    predict_pe = latest_price / eps_last_four_season
     g = stock_data.df_performance.iloc[-1].at['保留盈餘成長率']
+    y = 0.0 if latest_price <= 0 else stock_data.df_performance.iloc[-1].at['現金股利'] / latest_price
+    print('y = ', y, 'g = ', g)
+    peter_lynch_value = (y + g) / predict_pe * 100
+    print('本益比 = ', predict_pe, '彼得林區評價 = ', peter_lynch_value)
 
     def peter_lynch_reverse(val):
         return (g + math.sqrt(math.pow(g, 2) + 4 * stock_data.df_performance.iloc[-1].at['現金股利'] * (
@@ -252,7 +255,6 @@ def generate_predictions(stock_ids=[]):
         if stock_data is None:
             continue
         break_loop = False
-
         while True:
             try:
                 s_stock = get_predict_evaluate(stock_data)
