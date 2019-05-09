@@ -194,13 +194,13 @@ def get_predict_evaluate(stock_data):
     stock = Stock(stock_data.stock_id)
     # print(stock.price)
     eps_last_four_season = stock_data.df_statement.iloc[-4:].loc[:, 'EPS'].sum()
-    print('stock_price = ', stock.price[-1], ' eps_last_four_season = ', eps_last_four_season)
     latest_price = next((value for value in reversed(stock.price) if value is not None), 0.0)
+    print('stock_price = ', latest_price, ' eps_last_four_season = ', eps_last_four_season)
     predict_pe = latest_price / eps_last_four_season
     g = stock_data.df_performance.iloc[-1].at['保留盈餘成長率']
     y = 0.0 if latest_price <= 0 else stock_data.df_performance.iloc[-1].at['現金股利'] / latest_price
     print('y = ', y, 'g = ', g)
-    peter_lynch_value = (y + g) / predict_pe * 100
+    peter_lynch_value = (y + g) / predict_pe * 100 if predict_pe > 0 else 0
     print('本益比 = ', predict_pe, '彼得林區評價 = ', peter_lynch_value)
 
     def peter_lynch_reverse(val):
@@ -211,7 +211,7 @@ def get_predict_evaluate(stock_data):
     print('彼得林區評價 2 = ', peter_lynch_reverse(2.0), ' 彼得林區評價 1.5 = ', peter_lynch_reverse(1.5), '彼得林區評價 1 = ',
           peter_lynch_reverse(1.0))
     return pd.Series(
-        {'股價': stock.price[-1], '本益比': predict_pe, '彼得林區評價': peter_lynch_value, '彼得林區評價2倍股價': peter_lynch_reverse(2.0),
+        {'股價': latest_price, '本益比': predict_pe, '彼得林區評價': peter_lynch_value, '彼得林區評價2倍股價': peter_lynch_reverse(2.0),
          '彼得林區評價1.5倍股價': peter_lynch_reverse(1.5), '彼得林區評價1倍股價': peter_lynch_reverse(1.0)})
 
 
