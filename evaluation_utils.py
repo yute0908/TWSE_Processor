@@ -23,7 +23,7 @@ from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
 from rdss.utils import normalize_params
 from roe_utils import get_roe_in_year
-from stock_data import StockData
+from stock_data import StockData, store_df
 from twse_crawler import gen_output_path
 from value_measurement import PriceMeasurementProcessor
 
@@ -61,7 +61,7 @@ def get_matrix_level(stock_id, since_year, to_year=None):
         if matrix_level is not None:
             dfs.append(matrix_level)
     data_frame = None if len(dfs) == 0 else pd.concat(dfs)
-    print(data_frame)
+    # print(data_frame)
     return data_frame
 
 
@@ -75,7 +75,7 @@ def _get_matrix_level_in_year(stock_id, year):
     matrix_level = _get_matrix_level(roe, cash_flow_per_share)
     print(year, ': roe = ', roe, ' 每股業主盈餘現金流 = ', cash_flow_per_share, ' matrix level = ', matrix_level)
     p_index = pd.PeriodIndex([str(year)], freq='A')
-    return pd.DataFrame({"roe": roe, "每股自由現金流": cash_flow_per_share, "矩陣等級": matrix_level},
+    return pd.DataFrame({"ROE": roe, "每股自由現金流": cash_flow_per_share, "矩陣等級": matrix_level},
                         index=p_index)
 
 
@@ -91,12 +91,17 @@ def _get_matrix_level(roe, cash_flow_per_share):
 
 def get_cash_flow_per_share(stock_id, since, to=None):
     cash_flow_processor = CashFlowStatementProcessor(stock_id)
-    data_frame = cash_flow_processor.get_data_frames(since, to)
 
+    data_frame = cash_flow_processor.get_data_frames(since, to)
     if data_frame is None:
         return None
+    print('get_cash_flow_per_share since ', since.get('year'), ' data_frame = ', data_frame)
+
     stock_count_processor = StockCountProcessor()
-    stock_count = stock_count_processor.get_stock_count(stock_id, since.get('year'))
+    try:
+        stock_count = stock_count_processor.get_stock_count(stock_id, since.get('year'))
+    except:
+        stock_count = stock_count_processor.get_stock_count(stock_id, int(since.get('year')) - 1)
     data_frame_per_share = pd.DataFrame(
         {'每股業主盈餘現金流': pd.Series([cf / stock_count * 1000 for cf in data_frame['業主盈餘現金流']]).values}
         , index=data_frame.index)
@@ -311,17 +316,9 @@ def get_stock_data(stock_id):
             stock_data = get_evaluate_performance(str_stock_id, 2014)
             from stock_data import store
             store(stock_data)
-        except IndexError as inst:
-            print("get exception IndexError: ", inst, " for ", stock_id)
-            traceback.print_tb(inst.__traceback__)
-            return None
-        except KeyError as ke:
-            print("get exception KeyError: ", ke, " for ", stock_id)
-            traceback.print_tb(ke.__traceback__)
-            return None
-        except AttributeError as ae:
-            print("get exception AttributeError: ", ae, " for ", stock_id)
-            traceback.print_tb(ae.__traceback__)
+        except (IndexError, KeyError, AttributeError) as e:
+            print("get exception: ", e, " for ", stock_id)
+            traceback.print_tb(e.__traceback__)
             return None
 
     return stock_data
@@ -330,8 +327,7 @@ def get_stock_data(stock_id):
 def create_stock_datas(stock_codes=None):
     print('stock_codes = ', stock_codes)
     if stock_codes is None:
-        stock_list = list(filter(lambda x: x.type == '股票', list(twstock.codes.values())))
-        stock_codes = list(map(lambda x: x.code, stock_list))
+        stock_codes = get_stock_codes_from_twse()
     retry = 0
     for stock_code in stock_codes:
         get_data = False
@@ -349,6 +345,23 @@ def create_stock_datas(stock_codes=None):
                     exit(-1)
                 else:
                     time.sleep(60 * 10)
+
+
+def create_profit_matrix(stock_codes=None):
+    if stock_codes is None:
+        stock_codes = get_stock_codes_from_twse()
+    for stock_code in stock_codes:
+        try:
+            df_profit_level = get_matrix_level(str(stock_code), 2014)
+            store_df(str(stock_code), df_profit_level, 'profit_matrix')
+        except (IndexError, KeyError, AttributeError) as e:
+            print("get exception: ", e, " for ", stock_code)
+            traceback.print_tb(e.__traceback__)
+
+def get_stock_codes_from_twse():
+    stock_list = list(filter(lambda x: x.type == '股票', list(twstock.codes.values())))
+    stock_codes = list(map(lambda x: x.code, stock_list))
+    return stock_codes
 
 
 def get_stock_codes(stock_type='上市'):

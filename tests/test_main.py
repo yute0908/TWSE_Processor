@@ -6,7 +6,7 @@ from tabulate import tabulate
 
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_evaluate_performance, get_predict_evaluate, \
-    generate_predictions, create_stock_datas, get_stock_codes
+    generate_predictions, create_stock_datas, get_stock_codes, create_profit_matrix
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -126,7 +126,8 @@ class MainTest(unittest.TestCase):
         # roe_utils.get_roe_in_year(2330, 2019)
 
     def test_get_matrix_level(self):
-        get_matrix_level(2330, 2013)
+        matrix_level = get_matrix_level(3431, 2013)
+        print('matrix_level = ', matrix_level)
 
     def test_get_evaluate_performance(self):
         # stock_data = get_evaluate_performance('2330', 2014)
@@ -162,7 +163,8 @@ class MainTest(unittest.TestCase):
 
     def test_integrate(self):
         # generate_predictions(['1470'])
-        generate_predictions(get_stock_codes(stock_type='上市'))
+        # generate_predictions(get_stock_codes(stock_type='上市'))
         # create_stock_datas(['1341'])
         # create_stock_datas(get_stock_codes(stock_type='上市'))
         # create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        create_profit_matrix(['1102'])

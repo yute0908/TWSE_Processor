@@ -1,6 +1,7 @@
 import time
 
 import requests
+from urllib3.exceptions import NewConnectionError, MaxRetryError
 
 
 class DataFetcher:
@@ -13,7 +14,15 @@ class DataFetcher:
 
     def fetch(self, params):
         self.wait_for_server()
-        result = self.session.post(self.url, params, headers={'Connection':'close'})
+        get_value = False
+        while get_value is not True:
+            try:
+                result = self.session.post(self.url, params, headers={'Connection':'close'})
+                get_value = True
+            except (requests.exceptions.ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError) as ce:
+                print('get connection error')
+                self.wait_for_server()
+
         return result
 
     @staticmethod
