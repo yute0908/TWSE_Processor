@@ -350,13 +350,17 @@ def create_stock_datas(stock_codes=None):
 def create_profit_matrix(stock_codes=None):
     if stock_codes is None:
         stock_codes = get_stock_codes_from_twse()
+    err_ids = []
     for stock_code in stock_codes:
         try:
+            print('create_profit_matrix for stock ', stock_code)
             df_profit_level = get_matrix_level(str(stock_code), 2014)
             store_df(str(stock_code), df_profit_level, 'profit_matrix')
         except (IndexError, KeyError, AttributeError) as e:
             print("get exception: ", e, " for ", stock_code)
+            err_ids.append(stock_code)
             traceback.print_tb(e.__traceback__)
+    print('finish create profit matrix error stocks are ', err_ids)
 
 def get_stock_codes_from_twse():
     stock_list = list(filter(lambda x: x.type == '股票', list(twstock.codes.values())))
