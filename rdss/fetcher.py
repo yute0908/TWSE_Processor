@@ -17,8 +17,10 @@ class DataFetcher:
         get_value = False
         while get_value is not True:
             try:
+                print('fetch ', self.url, ' params = ', params)
                 result = self.session.post(self.url, params, headers={'Connection':'close'})
                 get_value = True
+                print('fetch success')
             except (requests.exceptions.ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError) as ce:
                 print('get connection error')
                 self.wait_for_server()

@@ -167,5 +167,5 @@ class MainTest(unittest.TestCase):
         # create_stock_datas(['1341'])
         # create_stock_datas(get_stock_codes(stock_type='上市'))
         # create_stock_datas(get_stock_codes(stock_type='上櫃'))
-        # create_profit_matrix(['1102'])
+        # create_profit_matrix(['3232'])
         create_profit_matrix(get_stock_codes(stock_type='上櫃'))
