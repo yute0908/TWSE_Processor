@@ -57,7 +57,7 @@ class CashFlowStatementProcessor(StatementProcessor):
             period_index = pd.PeriodIndex(start=pd.Period(str_period, freq='Q'), end=pd.Period(str_period, freq='Q'),
                                           freq='Q')
             dfs.append(pd.DataFrame([data_dict.values()], columns=data_dict.keys(), index=period_index))
-        return None if len(dfs) == 0 else pd.concat(dfs)
+        return None if len(dfs) == 0 else pd.concat(dfs, sort=False)
 
     def get_data_frame(self, year, season):
         return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})
@@ -99,7 +99,7 @@ class CashFlowStatementProcessor(StatementProcessor):
 
 class _CashFlowStatementFetcher(DataFetcher):
     def __init__(self):
-        super().__init__("http://mops.twse.com.tw/mops/web/ajax_t164sb05")
+        super().__init__("https://mops.twse.com.tw/mops/web/ajax_t164sb05")
 
     def fetch(self, params):
         return super().fetch(

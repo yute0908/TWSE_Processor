@@ -4,7 +4,7 @@ from rdss.fetcher import DataFetcher
 class _SimpleStatementsFetcher(DataFetcher):
 
     def __init__(self):
-        super().__init__('http://mops.twse.com.tw/mops/web/ajax_t163sb01')
+        super().__init__('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
 
     def fetch(self, params):
 

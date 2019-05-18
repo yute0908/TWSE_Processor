@@ -1,7 +1,8 @@
 import time
 
 import requests
-from urllib3.exceptions import NewConnectionError, MaxRetryError
+from requests.exceptions import ChunkedEncodingError
+from urllib3.exceptions import NewConnectionError, MaxRetryError, ProtocolError
 
 
 class DataFetcher:
@@ -21,8 +22,13 @@ class DataFetcher:
                 result = self.session.post(self.url, params, headers={'Connection':'close'}, timeout=60)
                 get_value = True
                 print('fetch success')
-            except (requests.exceptions.ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError) as ce:
+            except (requests.exceptions.ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError,
+                    ProtocolError) as ce:
                 print('get connection error ce ', ce)
+                self.wait_for_server()
+            except (ChunkedEncodingError, ProtocolError) as ce2:
+                print('get connection error 2 ce ', ce2)
+
                 self.wait_for_server()
 
         return result

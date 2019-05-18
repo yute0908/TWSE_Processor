@@ -1,6 +1,5 @@
 import math
 import socket
-import sys
 import time
 import traceback
 from urllib.request import urlopen
@@ -9,7 +8,8 @@ import pandas as pd
 import requests
 import socks
 import twstock
-from selenium.common.exceptions import WebDriverException
+from datetime import datetime
+
 from stem import Signal
 from stem.control import Controller
 from stem.process import launch_tor_with_config
@@ -22,9 +22,10 @@ from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
 from rdss.utils import normalize_params
-from roe_utils import get_roe_in_year
-from stock_data import StockData, store_df
+from roe_utils import get_roe_in_year, get_roe_recent_four_season
+from stock_data import StockData, store_df, read
 from twse_crawler import gen_output_path
+from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor
 
 proxy_port = 9050
@@ -33,80 +34,20 @@ ctrl_port = 9051
 
 def _tor_process_exists():
     try:
-      ctrl = Controller.from_port(port=ctrl_port)
-      ctrl.close()
-      return True
+        ctrl = Controller.from_port(port=ctrl_port)
+        ctrl.close()
+        return True
     except:
-      return False
+        return False
+
 
 def _launch_tor():
     return launch_tor_with_config(
-      config={
-        'SocksPort': str(proxy_port),
-        'ControlPort': str(ctrl_port)
-      },
-      take_ownership=True)
-
-def get_matrix_level(stock_id, since_year, to_year=None):
-    params = normalize_params(stock_id, since_year, to_year)
-    if params is None:
-        return None
-
-    dfs = []
-    stock_id = params.get('stock_id')
-    since_year = params.get('since_year')
-    to_year = params.get('to_year')
-    for year in range(since_year, to_year + 1):
-        matrix_level = _get_matrix_level_in_year(stock_id, year)
-        if matrix_level is not None:
-            dfs.append(matrix_level)
-    data_frame = None if len(dfs) == 0 else pd.concat(dfs)
-    # print(data_frame)
-    return data_frame
-
-
-def _get_matrix_level_in_year(stock_id, year):
-    roe = get_roe_in_year(stock_id, year)
-    cash_flow_per_share_df = get_cash_flow_per_share(stock_id, since={'year': year, 'season': 1},
-                                                     to={'year': year, 'season': 4})
-    if roe is None or cash_flow_per_share_df is None:
-        return None
-    cash_flow_per_share = cash_flow_per_share_df['每股業主盈餘現金流'].sum()
-    matrix_level = _get_matrix_level(roe, cash_flow_per_share)
-    print(year, ': roe = ', roe, ' 每股業主盈餘現金流 = ', cash_flow_per_share, ' matrix level = ', matrix_level)
-    p_index = pd.PeriodIndex([str(year)], freq='A')
-    return pd.DataFrame({"ROE": roe, "每股自由現金流": cash_flow_per_share, "矩陣等級": matrix_level},
-                        index=p_index)
-
-
-def _get_matrix_level(roe, cash_flow_per_share):
-    if roe >= 0.15:
-        return "A" if cash_flow_per_share > 0 else "B1"
-    if roe >= 0.10:
-        return "B2" if cash_flow_per_share > 0 else "C"
-    if roe > 0:
-        return "C1" if cash_flow_per_share > 0 else "C2"
-    return "D"
-
-
-def get_cash_flow_per_share(stock_id, since, to=None):
-    cash_flow_processor = CashFlowStatementProcessor(stock_id)
-
-    data_frame = cash_flow_processor.get_data_frames(since, to)
-    if data_frame is None:
-        return None
-    print('get_cash_flow_per_share since ', since.get('year'), ' data_frame = ', data_frame)
-
-    stock_count_processor = StockCountProcessor()
-    try:
-        stock_count = stock_count_processor.get_stock_count(stock_id, since.get('year'))
-    except:
-        stock_count = stock_count_processor.get_stock_count(stock_id, int(since.get('year')) - 1)
-    data_frame_per_share = pd.DataFrame(
-        {'每股業主盈餘現金流': pd.Series([cf / stock_count * 1000 for cf in data_frame['業主盈餘現金流']]).values}
-        , index=data_frame.index)
-    print(data_frame_per_share)
-    return data_frame_per_share
+        config={
+            'SocksPort': str(proxy_port),
+            'ControlPort': str(ctrl_port)
+        },
+        take_ownership=True)
 
 
 def get_evaluate_performance(stock_id, since_year, to_year=None):
@@ -116,41 +57,40 @@ def get_evaluate_performance(stock_id, since_year, to_year=None):
         return None
 
     stock_id = params.get('stock_id')
-    since_year = params.get('since_year')
-    to_year = params.get('to_year')
+    evaluate_since_year = params.get('since_year')
+    evaluate_to_year = params.get('to_year')
     get_recent_four_seasons = params.get('get_resent_four_seasons')
 
     dividend_policy_processor = DividendPolicyProcessor(stock_id)
-    df_dividend_policy = dividend_policy_processor.get_data_frames({'year': to_year}, {'year': to_year + 1})
+    df_dividend_policy = dividend_policy_processor.get_data_frames({'year': evaluate_to_year},
+                                                                   {'year': evaluate_to_year + 1})
 
     try:
         should_modify_since_year = False if df_dividend_policy is not None and str(
-            since_year) in df_dividend_policy.index else True
+            evaluate_since_year) in df_dividend_policy.index else True
     except KeyError:
         should_modify_since_year = True
         print('get error')
-    since_year = since_year - 1 if should_modify_since_year and since_year >= to_year - 1 else since_year
+        evaluate_since_year = evaluate_since_year - 1 if should_modify_since_year and evaluate_since_year >= evaluate_to_year - 1 else evaluate_since_year
 
-    df_dividend_policy = dividend_policy_processor.get_data_frames({'year': since_year}, {'year': to_year + 1})
+    df_dividend_policy = dividend_policy_processor.get_data_frames({'year': evaluate_since_year},
+                                                                   {'year': evaluate_to_year + 1})
     df_dividend_policy.sort_index(inplace=True)
-    print('df_dividend_policy = ', df_dividend_policy)
 
-    df_income_statement = SimpleIncomeStatementProcessor(stock_id).get_data_frames({'year': since_year - 1},
-                                                                                   {'year': to_year})
+    df_income_statement = SimpleIncomeStatementProcessor(stock_id).get_data_frames({'year': evaluate_since_year - 1},
+                                                                                   {'year': evaluate_to_year})
     df_income_statement.sort_index(inplace=True)
-    print('df_income_statement = ', df_income_statement)
 
     balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
-    df_balance_sheet = balance_sheet_processor.get_data_frames({'year': since_year - 1},
-                                                               {'year': to_year})
-    print('df_balance_sheet = ', df_balance_sheet)
+    df_balance_sheet = balance_sheet_processor.get_data_frames({'year': evaluate_since_year - 1},
+                                                               {'year': evaluate_to_year})
 
     price_measurement_processor = PriceMeasurementProcessor(stock_id)
     df_prices = price_measurement_processor.get_data_frame()
 
     results_data = []
     results_index = []
-    for year in range(since_year, to_year + 1):
+    for year in range(evaluate_since_year, evaluate_to_year + 1):
         count_of_effects = len(df_income_statement.loc["{}Q{}".format(year - 1, 1):"{}Q{}".format(year, 4)].index)
         if count_of_effects == 8:
             sum_of_eps_two_years = \
@@ -192,7 +132,166 @@ def get_evaluate_performance(stock_id, since_year, to_year=None):
 
     merged_statement = pd.concat([df_income_statement, df_balance_sheet], axis=1, sort=False)
     # print(df_results)
-    return StockData(stock_id, pd.DataFrame(results_data, index=results_index), merged_statement)
+    return StockData(stock_id, pd.DataFrame(results_data, index=results_index), merged_statement,
+                     get_matrix_level(stock_id, since_year, to_year))
+
+
+def sync_data(stock_id):
+    stock_data = read(str(stock_id))
+    df_statement = _sync_statement(stock_id, None if stock_data is None else stock_data.df_statement)
+    df_performance = _sync_performance(stock_id, df_statement, stock_data.df_performance)
+    df_profit_matrix = _sync_profit_matrix(stock_id, None if stock_data is None else stock_data.df_profit_matrix)
+    return StockData(stock_id, df_performance, df_statement,
+                     df_profit_matrix) if df_statement is not None and df_performance is not None and df_profit_matrix is not None else None
+
+
+def _sync_performance(stock_id, df_statement, df_performance=None):
+    if df_statement is None:
+        return None
+
+    results_data = [] if df_performance is None else df_performance.to_dict('records')
+    results_index = [] if df_performance is None else df_performance.index.tolist()
+    print('results_index = ', results_index)
+    print('results_data = ', results_data)
+    for index in results_index:
+        print('index ', index, ' value = ', str(df_performance.loc[index]['預估值']), ' type = ',
+              df_performance.loc[index]['預估值'])
+        if df_performance.loc[index]['預估值']:
+            df_performance = df_performance.drop(index=index)
+    print('after drop df_performance = ', df_performance)
+    results_data = [] if df_performance is None else df_performance.to_dict('records')
+    results_index = [] if df_performance is None else df_performance.index.tolist()
+    print('results_index 2 = ', results_index)
+    print('results_data 2 = ', results_data)
+
+    start_year = max(2014, 0 if len(results_index) == 0 else results_index[-1] + 1)
+    print('start_year = ', start_year)
+
+    now = datetime.now()
+    dividend_policy_processor = DividendPolicyProcessor(stock_id)
+    df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1}, {'year': now.year})
+    print('df_dividend_policy = ', df_dividend_policy)
+
+    price_measurement_processor = PriceMeasurementProcessor(stock_id)
+    df_prices = price_measurement_processor.get_data_frame()
+
+    for year in range(start_year, now.year + 1):
+        count_of_effects = len(df_statement.loc["{}Q{}".format(year - 1, 1):"{}Q{}".format(year, 4)].index)
+        if count_of_effects == 8:
+            sum_of_eps_two_years = \
+                df_statement.loc["{}Q{}".format(year - 1, 1):"{}Q{}".format(year, 4)].sum().loc["EPS"]
+            value_in_two_years = df_statement.loc["{}Q{}".format(year - 1, 1), "每股淨值"] + df_statement.loc[
+                "{}Q{}".format(year, 4), "每股淨值"]
+        else:
+            sum_of_eps_two_years = df_statement.iloc[-8:].loc[:, "EPS"].sum()
+            value_in_two_years = df_statement.iloc[[-8, -1], ].loc[:, "每股淨值"].sum()
+        has_dividend = str(year) in df_dividend_policy.index
+        predict = not count_of_effects == 8 or not has_dividend
+        if has_dividend:
+            dr_in_two_years = df_dividend_policy.loc[str(year - 1): str(year), "現金股利"].sum()
+            dividend_ratio_two_years = dr_in_two_years / sum_of_eps_two_years
+        else:
+            if len(results_data) > 0:
+                dividend_ratio_two_years = results_data[-1].get('兩年現金股利發放率')
+            else:
+                dividend_ratio_two_years = 0
+            dr_in_two_years = dividend_ratio_two_years * df_statement.iloc[-4:].loc[:, "EPS"].sum()
+
+        avg_roe_two_years = sum_of_eps_two_years / value_in_two_years
+        growth_ratio_of_eps = avg_roe_two_years * (1 - dividend_ratio_two_years)
+        try:
+            dividend_yield = dr_in_two_years / 2 / float(
+                df_prices.loc[str(year), '平均股價'] if str(year) in df_prices.index else df_prices.iloc[0].get('平均股價'))
+        except Exception as e:
+            print('get', e, ' when get price for ', stock_id, ' in ', year)
+            dividend_yield = float(0)
+
+        results_index.append(str(year))
+        results_data.append(
+            {'兩年現金股利發放率': dividend_ratio_two_years, '兩年平均ROE': avg_roe_two_years, '保留盈餘成長率': growth_ratio_of_eps,
+             '現金股利殖利率': dividend_yield, '高登模型預期報酬率': growth_ratio_of_eps + dividend_yield, '預估值': predict,
+             '現金股利': df_dividend_policy.loc[str(year), "現金股利"] if has_dividend else dr_in_two_years})
+        df_performance = pd.DataFrame(results_data, index=results_index)
+        print('df_performance = ', df_performance)
+    return df_performance
+
+
+def _sync_statement(stock_id, df_statement=None):
+    if df_statement is None:
+        df_income_statement = SimpleIncomeStatementProcessor(stock_id).get_data_frames({'year': 2013})
+        df_income_statement.sort_index(inplace=True)
+        balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
+        df_balance_sheet = balance_sheet_processor.get_data_frames({'year': 2013})
+        result = pd.concat([df_income_statement, df_balance_sheet], axis=1, sort=False)
+        print('1 result = ', result)
+
+    else:
+        now = datetime.now()
+        current_quarter = '{}Q{}'.format(now.year, int((now.month - 1) / 3 + 1))
+        period_current = pd.Period(current_quarter, freq='Q')
+        index = df_statement.index.to_period("Q")
+        df_statement = df_statement.reset_index(drop=True).set_index([index])
+        print('2 statement = ', df_statement)
+        period_last = df_statement.index.values[-1]
+        if period_last < period_current:
+            start_year = period_last.year if period_last.quarter < 4 else (period_last.year + 1)
+            start_quarter = (period_last.quarter + 1) if period_last.quarter < 4 else 1
+            df_income_statement = SimpleIncomeStatementProcessor(stock_id).get_data_frames(
+                {'year': start_year, 'season': start_quarter},
+                {'year': period_current.year, 'season': period_current.quarter})
+
+            balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
+            df_balance_sheet = balance_sheet_processor.get_data_frames({'year': start_year, 'season': start_quarter},
+                                                                       {'year': period_current.year,
+                                                                        'season': period_current.quarter})
+            if df_income_statement is not None and df_balance_sheet is not None:
+                concat_df = pd.concat([df_income_statement, df_balance_sheet], axis=1, sort=False)
+                result = df_statement.append([concat_df])
+            else:
+                result = df_statement
+            print('2 - 1 result = ', result)
+        else:
+            result = df_statement
+    return result
+
+
+def _sync_profit_matrix(stock_id, df_profit_matrix=None):
+    print('df_profit_matrix = ', df_profit_matrix)
+    results_index = []
+    if df_profit_matrix is not None:
+        index = df_profit_matrix.index.to_period('A')
+        df_profit_matrix = df_profit_matrix.reset_index(drop=True).set_index([index])
+        if '近四季' not in df_profit_matrix.columns:
+            df_profit_matrix['近四季'] = False
+        # delete_row = df_profit_matrix[df_profit_matrix['近四季'] is False].index
+        # print('delete_row = ', delete_row)
+        df_profit_matrix = df_profit_matrix[df_profit_matrix['近四季'] == False]
+        results_data = df_profit_matrix.to_dict('records')
+        results_index = df_profit_matrix.index.year.tolist()
+        print('fuck results_data = ', results_data, ' results_index = ', results_index)
+
+    print('df_profit_matrix 2 = ', df_profit_matrix)
+
+    # print('results_data = ', results_data)
+    # print('results_index = ', results_index)
+    start_year = max(2014, 0 if len(results_index) == 0 else results_index[-1] + 1)
+    now = datetime.now()
+    dfs = []
+    for year in range(start_year, now.year):
+        matrix_level = _get_matrix_level_in_year(stock_id, year)
+        if matrix_level is not None:
+            dfs.append(matrix_level)
+        # print('matrix_level in ', year, ' = ', matrix_level)
+    df_recent_four_season = _get_matrix_level_in_year(stock_id, None, True)
+    if df_recent_four_season is not None:
+        dfs.append(df_recent_four_season)
+    data_frame = None if len(dfs) == 0 else pd.concat(dfs)
+    if data_frame is None:
+        result = df_profit_matrix
+    else:
+        result = data_frame if df_profit_matrix is None else pd.concat([df_profit_matrix, data_frame], sort=True)
+    print('result = ', result)
+    return result
 
 
 def get_predict_evaluate(stock_data):
@@ -306,14 +405,15 @@ def generate_predictions(stock_ids=[]):
     print('error_ids = ', error_stock_ids)
 
 
-def get_stock_data(stock_id):
+def get_stock_data(stock_id, sync_to_latest=False):
     from stock_data import read
     str_stock_id = str(stock_id)
     stock_data = read(str_stock_id)
-    if stock_data is None:
+    if stock_data is None or sync_to_latest:
         try:
             print('get stock_data for ', stock_id)
-            stock_data = get_evaluate_performance(str_stock_id, 2014)
+            # stock_data = get_evaluate_performance(str_stock_id, 2014)
+            stock_data = sync_data(str_stock_id)
             from stock_data import store
             store(stock_data)
         except (IndexError, KeyError, AttributeError) as e:
@@ -333,7 +433,7 @@ def create_stock_datas(stock_codes=None):
         get_data = False
         while get_data is False:
             try:
-                get_stock_data(str(stock_code))
+                get_stock_data(str(stock_code), True)
                 get_data = True
                 retry = 0
             except Exception as e:
@@ -347,20 +447,90 @@ def create_stock_datas(stock_codes=None):
                     time.sleep(60 * 10)
 
 
-def create_profit_matrix(stock_codes=None):
-    if stock_codes is None:
-        stock_codes = get_stock_codes_from_twse()
-    err_ids = []
-    for stock_code in stock_codes:
-        try:
-            print('create_profit_matrix for stock ', stock_code)
-            df_profit_level = get_matrix_level(str(stock_code), 2014)
-            store_df(str(stock_code), df_profit_level, 'profit_matrix')
-        except (IndexError, KeyError, AttributeError) as e:
-            print("get exception: ", e, " for ", stock_code)
-            err_ids.append(stock_code)
-            traceback.print_tb(e.__traceback__)
-    print('finish create profit matrix error stocks are ', err_ids)
+def get_matrix_level(stock_id, since_year, to_year=None):
+    params = normalize_params(stock_id, since_year, to_year)
+    if params is None:
+        return None
+
+    dfs = []
+    stock_id = params.get('stock_id')
+    since_year = params.get('since_year')
+    to_year = params.get('to_year')
+    for year in range(since_year, to_year + 1):
+        matrix_level = _get_matrix_level_in_year(stock_id, year)
+        if matrix_level is not None:
+            dfs.append(matrix_level)
+    data_frame = None if len(dfs) == 0 else pd.concat(dfs)
+    # print(data_frame)
+    return data_frame
+
+
+def _get_matrix_level_in_year(stock_id, year, recent=False):
+    if year is None and recent is False:
+        return None
+    roe = get_roe_in_year(stock_id, year) if recent is False else get_roe_recent_four_season(stock_id)
+    print('roe = ', roe)
+    cash_flow_per_share_df = get_cash_flow_per_share(stock_id, since={'year': year, 'season': 1}, to={'year': year,
+                                                                                                      'season': 4}) if recent is False else get_cash_flow_per_share_recent(
+        stock_id)
+    results_index = cash_flow_per_share_df.index
+    if roe is None or cash_flow_per_share_df is None:
+        print('roe = ', roe)
+        print('cash_flow_per_share_df = ', cash_flow_per_share_df)
+        return None
+    cash_flow_per_share = cash_flow_per_share_df['每股業主盈餘現金流'].sum()
+    matrix_level = _get_matrix_level(roe, cash_flow_per_share)
+    print(year, ': roe = ', roe, ' 每股業主盈餘現金流 = ', cash_flow_per_share, ' matrix level = ', matrix_level)
+    p_index = pd.PeriodIndex([str(year if not recent else results_index[0].qyear)], freq='A')
+    return pd.DataFrame({"ROE": roe, "每股自由現金流": cash_flow_per_share, "矩陣等級": matrix_level, "近四季": recent},
+                        index=p_index)
+
+
+def _get_matrix_level(roe, cash_flow_per_share):
+    if roe >= 0.15:
+        return "A" if cash_flow_per_share > 0 else "B1"
+    if roe >= 0.10:
+        return "B2" if cash_flow_per_share > 0 else "C"
+    if roe > 0:
+        return "C1" if cash_flow_per_share > 0 else "C2"
+    return "D"
+
+
+def get_cash_flow_per_share_recent(stock_id):
+    count = 4
+    has_valid_data = False
+    time_lines = None
+    while not has_valid_data:
+        time_lines = get_recent_seasons(count)
+        if get_cash_flow_per_share(stock_id, time_lines[3]) is not None:
+            break
+        else:
+            count += 1
+    print('get_cash_flow_per_share_recent count = ', count)
+    df_result = get_cash_flow_per_share(stock_id, time_lines[0])
+    print('get_cash_flow_per_share_recent result = ', df_result)
+    return df_result
+
+
+def get_cash_flow_per_share(stock_id, since, to=None):
+    cash_flow_processor = CashFlowStatementProcessor(stock_id)
+
+    data_frame = cash_flow_processor.get_data_frames(since, to)
+    if data_frame is None:
+        return None
+    print('get_cash_flow_per_share since ', since.get('year'), ' data_frame = ', data_frame)
+
+    stock_count_processor = StockCountProcessor()
+    try:
+        stock_count = stock_count_processor.get_stock_count(stock_id, since.get('year'))
+    except:
+        stock_count = stock_count_processor.get_stock_count(stock_id, int(since.get('year')) - 1)
+    data_frame_per_share = pd.DataFrame(
+        {'每股業主盈餘現金流': pd.Series([cf / stock_count * 1000 for cf in data_frame['業主盈餘現金流']]).values}
+        , index=data_frame.index)
+    print(data_frame_per_share)
+    return data_frame_per_share
+
 
 def get_stock_codes_from_twse():
     stock_list = list(filter(lambda x: x.type == '股票', list(twstock.codes.values())))

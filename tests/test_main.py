@@ -1,20 +1,20 @@
-import pandas as pd
 import unittest
 
+import pandas as pd
 import requests
 from tabulate import tabulate
 
 import roe_utils
-from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_evaluate_performance, get_predict_evaluate, \
-    generate_predictions, create_stock_datas, get_stock_codes, create_profit_matrix
+from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_predict_evaluate, \
+    create_stock_datas, get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
+    get_stock_data
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
-from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.fetcher import DataFetcher
+from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
-from twse_crawler import gen_output_path
 from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor
 
@@ -129,12 +129,22 @@ class MainTest(unittest.TestCase):
         matrix_level = get_matrix_level(3431, 2013)
         print('matrix_level = ', matrix_level)
 
+    def test_cash_flow_per_share_recent(self):
+        get_cash_flow_per_share_recent(1101)
+
     def test_get_evaluate_performance(self):
         # stock_data = get_evaluate_performance('2330', 2014)
         # path = gen_output_path('data', 'performance_2330.xlsx')
-        stock_data = get_evaluate_performance('1240', 2014)
-        from stock_data import store
-        store(stock_data)
+        # stock_data = get_evaluate_performance('1240', 2014)
+        # stock_data = get_evaluate_performance('1218', 2014)
+        # print(stock_data.df_statement)
+        # print(stock_data.df_performance)
+        # print(stock_data.df_profit_matrix)
+        # from stock_data import store
+        # store(stock_data)
+        sync_data(1102)
+        # sync_data(1104)
+        # sync_data(1101)
 
     def test_predict_evaluation(self):
         from stock_data import read
@@ -154,6 +164,16 @@ class MainTest(unittest.TestCase):
         result.loc[:, '6294'] = s_6294
         print('result 3', result.T)
 
+    def test_read_stock_data(self):
+        from stock_data import read
+        stock_data = read('1101')
+        self.assertIsNotNone(stock_data)
+        print(stock_data.stock_id)
+        print(stock_data.df_statement)
+        print(stock_data.df_performance)
+        print(stock_data.df_profit_matrix)
+
+
     def test_generate_time_lines(self):
         self.assertEqual(len(get_recent_seasons(0)), 0)
         self.assertEqual(len(get_recent_seasons(1)), 1)
@@ -161,11 +181,19 @@ class MainTest(unittest.TestCase):
         self.assertEqual(len(get_recent_seasons(3)), 3)
         self.assertEqual(len(get_recent_seasons(4)), 4)
 
+    def test_get_stock_data(self):
+        stock_data = get_stock_data(1102, True)
+        self.assertIsNotNone(stock_data)
+
     def test_integrate(self):
         # generate_predictions(['1470'])
         # generate_predictions(get_stock_codes(stock_type='上市'))
-        # create_stock_datas(['1341'])
-        # create_stock_datas(get_stock_codes(stock_type='上市'))
-        # create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        # create_stock_datas(['1101'])
+        create_stock_datas(get_stock_codes(stock_type='上市'))
+        create_stock_datas(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(['3232'])
-        create_profit_matrix(get_stock_codes(stock_type='上櫃'))
+        # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
+        # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
+        # stock_data = get_stock_data(6294, True)
+        # s_prediction = get_predict_evaluate(stock_data)
+        # print('prediction = ', s_prediction)

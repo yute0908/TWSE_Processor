@@ -41,7 +41,7 @@ class DividendPolicyProcessor(StatementProcessor):
 class _DividendPolicyFetcher(DataFetcher):
 
     def __init__(self):
-        super().__init__('http://mops.twse.com.tw/mops/web/ajax_t05st09')
+        super().__init__('https://mops.twse.com.tw/mops/web/ajax_t05st09')
 
     def fetch(self, params):
         return super().fetch(

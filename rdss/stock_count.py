@@ -6,7 +6,7 @@ from rdss.fetcher import DataFetcher
 class StockCountProcessor:
 
     def __init__(self):
-        self.__data_fetcher = DataFetcher('http://mops.twse.com.tw/mops/web/ajax_t16sn02')
+        self.__data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t16sn02')
 
     def get_stock_count(self, stock_id, year):
         result = self.__data_fetcher.fetch(

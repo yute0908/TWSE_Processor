@@ -46,8 +46,7 @@ def _get_for_times(stock_id, time_lines):
     shareholder_equity_processor = ShareholderEquityProcessor(stock_id)
     df_shareholder_equity = shareholder_equity_processor.get_data_frames(since=time_lines[0],
                                                                          to=time_lines[length - 1])
-    print("\n")
-    print(df_shareholder_equity)
+    print('df_shareholder_equity = ', df_shareholder_equity)
     roe = df_income_statement['稅後淨利'].sum() / ((df_shareholder_equity.loc[start_period, ('權益總額', '期初餘額')] +
                                                 df_shareholder_equity.loc[stop_period, ('權益總額', '期末餘額')]) / 2)
     print("roe = ", roe)
