@@ -139,7 +139,7 @@ def get_evaluate_performance(stock_id, since_year, to_year=None):
 def sync_data(stock_id):
     stock_data = read(str(stock_id))
     df_statement = _sync_statement(stock_id, None if stock_data is None else stock_data.df_statement)
-    df_performance = _sync_performance(stock_id, df_statement, stock_data.df_performance)
+    df_performance = _sync_performance(stock_id, df_statement, None if stock_data is None else stock_data.df_performance)
     df_profit_matrix = _sync_profit_matrix(stock_id, None if stock_data is None else stock_data.df_profit_matrix)
     return StockData(stock_id, df_performance, df_statement,
                      df_profit_matrix) if df_statement is not None and df_performance is not None and df_profit_matrix is not None else None
@@ -540,11 +540,11 @@ def get_stock_codes_from_twse():
 
 def get_stock_codes(stock_type='上市'):
     if stock_type == '上市':
-        df_stocks = pd.read_csv(gen_output_path('data', '上市.csv'), engine='python')
+        df_stocks = pd.read_csv(gen_output_path('data', '上市.csv'), engine='python', encoding='big5')
         list_stocks = df_stocks.loc[:, '公司代號'].values.tolist()
     else:
         if stock_type == '上櫃':
-            df_stocks = pd.read_csv(gen_output_path('data', '上櫃.csv'), engine='python')
+            df_stocks = pd.read_csv(gen_output_path('data', '上櫃.csv'), engine='python', encoding='big5')
             list_stocks = df_stocks.loc[:, '公司代號'].values.tolist()
         else:
             list_stocks = None
