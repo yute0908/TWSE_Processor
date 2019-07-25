@@ -294,6 +294,33 @@ def _sync_profit_matrix(stock_id, df_profit_matrix=None):
     return result
 
 
+matrix_value_dic = {"A": 12, "B1": 8, "B2": 6, "C": 4, "C1": 2, "C2": 1, "D": 0}
+
+
+def get_matrix_value(stock_data):
+    df_profit_matrix = stock_data.df_profit_matrix
+    print('the last record = ', df_profit_matrix.iloc[-1], ' type = ', type(df_profit_matrix.iloc[-1].loc['近四季']))
+    # print(matrix_levels)
+    matrix_levels = df_profit_matrix['矩陣等級'].values[::-1]
+
+    if df_profit_matrix.iloc[-1].loc['近四季'] == True:
+        weight = [1, 0.8, 0.5, math.pow(0.5, 2), math.pow(0.5, 3), math.pow(0.5, 4)]
+        use_count = min(len(matrix_levels), len(weight))
+        matrix_str = ",".join(
+            [matrix_levels[0], "[" + ",".join(matrix_levels[1: use_count + 1]) + "]"])
+
+    else:
+        weight = [1, 0.5, math.pow(0.5, 2), math.pow(0.5, 3), math.pow(0.5, 4)]
+        use_count = min(len(matrix_levels), len(weight))
+        matrix_str = "[" + ",".join(matrix_levels[:]) + "]"
+
+    result = sum([matrix_value_dic[matrix_levels[i]] * weight[i] for i in range(0, use_count)])
+    # print([matrix_value_dic[key] for key in matrix_levels[0:use_count]])
+    # print(matrix_str)
+    # print(result)
+    return {'矩陣等級': matrix_str, '矩陣分數':result}
+
+
 def get_predict_evaluate(stock_data):
     stock = Stock(stock_data.stock_id)
     # print(stock.price)
@@ -312,11 +339,11 @@ def get_predict_evaluate(stock_data):
                 val / 100) / eps_last_four_season)) / (
                        2 * (val / 100) / eps_last_four_season)
 
-    print('彼得林區評價 2 = ', peter_lynch_reverse(2.0), ' 彼得林區評價 1.5 = ', peter_lynch_reverse(1.5), '彼得林區評價 1 = ',
-          peter_lynch_reverse(1.0))
-    return pd.Series(
-        {'股價': latest_price, '本益比': predict_pe, '彼得林區評價': peter_lynch_value, '彼得林區評價2倍股價': peter_lynch_reverse(2.0),
-         '彼得林區評價1.5倍股價': peter_lynch_reverse(1.5), '彼得林區評價1倍股價': peter_lynch_reverse(1.0)})
+    result = {'股價': latest_price, '本益比': predict_pe, '彼得林區評價': peter_lynch_value,
+              '彼得林區評價2倍股價': peter_lynch_reverse(2.0),
+              '彼得林區評價1.5倍股價': peter_lynch_reverse(1.5), '彼得林區評價1倍股價': peter_lynch_reverse(1.0)}
+    matrix_value = get_matrix_value(stock_data)
+    return pd.Series({**result, **matrix_value})
 
 
 def generate_predictions(stock_ids=[]):

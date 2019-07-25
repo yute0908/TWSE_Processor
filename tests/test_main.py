@@ -7,7 +7,7 @@ from tabulate import tabulate
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_predict_evaluate, \
     create_stock_datas, get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
-    get_stock_data
+    get_stock_data, generate_predictions, get_matrix_value
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -164,6 +164,12 @@ class MainTest(unittest.TestCase):
         result.loc[:, '6294'] = s_6294
         print('result 3', result.T)
 
+    def test_get_matrix_value(self):
+        from stock_data import read
+        stock_data = read('1102')
+        get_matrix_value(stock_data)
+
+
     def test_read_stock_data(self):
         from stock_data import read
         stock_data = read('1101')
@@ -188,12 +194,13 @@ class MainTest(unittest.TestCase):
     def test_integrate(self):
         # generate_predictions(['1470'])
         # generate_predictions(get_stock_codes(stock_type='上市'))
-        # create_stock_datas(['1101'])
-        create_stock_datas(get_stock_codes(stock_type='上市'))
-        create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        create_stock_datas([2330, 6294])
+        # create_stock_datas(get_stock_codes(stock_type='上市'))
+        # create_stock_datas(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(['3232'])
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
         # stock_data = get_stock_data(6294, True)
         # s_prediction = get_predict_evaluate(stock_data)
+        # generate_predictions([2330, 6294])
         # print('prediction = ', s_prediction)
