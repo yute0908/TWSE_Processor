@@ -3,11 +3,12 @@ import unittest
 import pandas as pd
 import requests
 from tabulate import tabulate
+from twstock import Stock
 
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_predict_evaluate, \
     create_stock_datas, get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
-    get_stock_data, generate_predictions, get_matrix_value
+    get_stock_data, generate_predictions, get_matrix_value, generate_predictions2
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -15,6 +16,8 @@ from rdss.fetcher import DataFetcher
 from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
+from tsec.crawl import Crawler
+from twse_crawler import gen_output_path
 from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor
 
@@ -150,12 +153,18 @@ class MainTest(unittest.TestCase):
         from stock_data import read
         stock_data = read('2330')
         self.assertIsNotNone(stock_data)
-        s_2330 = get_predict_evaluate(stock_data).rename('2330')
+
+        df = None
+        with open(gen_output_path('data', 'prices.xlsx'), 'rb') as file:
+            df = pd.read_excel(file)
+            file.close()
+
+        s_2330 = get_predict_evaluate(stock_data, float(df.loc['2330', '收盤價'])).rename('2330')
         result = pd.concat([s_2330], axis=1)
         print('result 1', result.T)
 
         stock_data = read('6294')
-        s_6294 = get_predict_evaluate(stock_data).rename('6294')
+        s_6294 = get_predict_evaluate(stock_data, float(df.loc['6294', '收盤價'])).rename('6294')
         self.assertIsNotNone(stock_data)
 
         result.loc[:, '6294'] = s_6294
@@ -194,7 +203,7 @@ class MainTest(unittest.TestCase):
     def test_integrate(self):
         # generate_predictions(['1470'])
         # generate_predictions(get_stock_codes(stock_type='上市'))
-        create_stock_datas([2330, 6294])
+        # create_stock_datas([2330, 6294])
         # create_stock_datas(get_stock_codes(stock_type='上市'))
         # create_stock_datas(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(['3232'])
@@ -202,5 +211,22 @@ class MainTest(unittest.TestCase):
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
         # stock_data = get_stock_data(6294, True)
         # s_prediction = get_predict_evaluate(stock_data)
-        # generate_predictions([2330, 6294])
+        generate_predictions([1102])
         # print('prediction = ', s_prediction)
+        # stock = Stock('1445')
+        # print(stock.price)
+
+    def test_tsec_crawler(self):
+        crawler = Crawler()
+        df = crawler.get_data((2019, 8, 5))
+        with pd.ExcelWriter(gen_output_path('data', 'prices.xlsx')) as writer:
+            df.to_excel(writer)
+            writer.close()
+
+    def test_get_prediction(self):
+        df = None
+        with open(gen_output_path('data', 'prices.xlsx'), 'rb') as file:
+            df = pd.read_excel(file)
+            file.close()
+        prices = df.loc[:, '收盤價']
+        generate_predictions2(prices, ['2330', '6294'])

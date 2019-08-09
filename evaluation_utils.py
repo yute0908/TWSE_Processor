@@ -321,11 +321,13 @@ def get_matrix_value(stock_data):
     return {'矩陣等級': matrix_str, '矩陣分數':result}
 
 
-def get_predict_evaluate(stock_data):
-    stock = Stock(stock_data.stock_id)
+def get_predict_evaluate(stock_data, latest_price):
+    # stock = Stock(stock_data.stock_id)
+
     # print(stock.price)
     eps_last_four_season = stock_data.df_statement.iloc[-4:].loc[:, 'EPS'].sum()
-    latest_price = next((value for value in reversed(stock.price) if value is not None), 0.0)
+    # latest_price = next((value for value in reversed(stock.price) if value is not None), 0.0)
+    # latest_price = next((value for value in reversed(stock.price) if value is not None), 0.0)
     print('stock_price = ', latest_price, ' eps_last_four_season = ', eps_last_four_season)
     predict_pe = latest_price / eps_last_four_season
     g = stock_data.df_performance.iloc[-1].at['保留盈餘成長率']
@@ -335,15 +337,60 @@ def get_predict_evaluate(stock_data):
     print('本益比 = ', predict_pe, '彼得林區評價 = ', peter_lynch_value)
 
     def peter_lynch_reverse(val):
-        return (g + math.sqrt(math.pow(g, 2) + 4 * stock_data.df_performance.iloc[-1].at['現金股利'] * (
-                val / 100) / eps_last_four_season)) / (
-                       2 * (val / 100) / eps_last_four_season)
+        value = math.pow(g, 2) + 4 * stock_data.df_performance.iloc[-1].at['現金股利'] * (val / 100) / eps_last_four_season
+
+        return 0 if value <= 0 else (g + math.sqrt(value)) / (2 * (val / 100) / eps_last_four_season)
 
     result = {'股價': latest_price, '本益比': predict_pe, '彼得林區評價': peter_lynch_value,
               '彼得林區評價2倍股價': peter_lynch_reverse(2.0),
               '彼得林區評價1.5倍股價': peter_lynch_reverse(1.5), '彼得林區評價1倍股價': peter_lynch_reverse(1.0)}
     matrix_value = get_matrix_value(stock_data)
     return pd.Series({**result, **matrix_value})
+
+def generate_predictions2(df_prices, stock_ids=[]):
+    error_stock_ids = []
+    df_predictions = None
+
+    for stock_id in stock_ids:
+        str_stock_id = str(stock_id)
+
+        try:
+            stock_data = get_stock_data(str_stock_id)
+        except:
+            stock_data = None
+
+        if stock_data is None:
+            continue
+
+        try:
+            s_stock = get_predict_evaluate(stock_data, float(df_prices.loc[str_stock_id]))
+        except Exception as e:
+            print("Unexpected error:", e)
+            traceback.print_tb(e.__traceback__)
+            print('Get error when get stock ', stock_id, ' stock_data = ', stock_data)
+            error_stock_ids.append(stock_id)
+            s_stock = None
+            break
+
+        if s_stock is None:
+            continue
+        if df_predictions is None:
+            df_predictions = pd.DataFrame(columns=s_stock.index, data=[s_stock.values])
+            df_predictions['股號'] = [str_stock_id]
+            df_predictions = df_predictions.set_index('股號')
+            print("first record")
+            print(df_predictions)
+            print("index = ", df_predictions.index)
+        else:
+            print('get index = ', df_predictions.index)
+            df_predictions.loc[str_stock_id] = s_stock.values
+
+        print('result = ', df_predictions)
+        print('err_id = ', error_stock_ids)
+    output_path = gen_output_path('data', 'evaluations.xlsx')
+    with pd.ExcelWriter(output_path) as writer:
+        df_predictions.to_excel(writer, sheet_name='predictions')
+
 
 
 def generate_predictions(stock_ids=[]):
@@ -373,6 +420,8 @@ def generate_predictions(stock_ids=[]):
 
     newIP = urlopen("http://icanhazip.com").read()
     print("NewIP Address: %s" % newIP)
+
+
     error_stock_ids = []
     for stock_id in stock_ids:
         str_stock_id = str(stock_id)
@@ -422,14 +471,15 @@ def generate_predictions(stock_ids=[]):
         else:
             print('get index = ', df_predictions.index)
             df_predictions.loc[str_stock_id] = s_stock.values
-    controller.close()
-    tor_proc.terminate()
-
+        
     print('result = ', df_predictions)
     output_path = gen_output_path('data', 'evaluations.xlsx')
     with pd.ExcelWriter(output_path) as writer:
         df_predictions.to_excel(writer, sheet_name='predictions')
-    print('error_ids = ', error_stock_ids)
+    # print('error_ids = ', error_stock_ids)
+
+    controller.close()
+    tor_proc.terminate()
 
 
 def get_stock_data(stock_id, sync_to_latest=False):
