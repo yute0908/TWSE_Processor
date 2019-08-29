@@ -1,3 +1,5 @@
+import sys
+
 import math
 import socket
 import time
@@ -354,15 +356,17 @@ def generate_predictions2(df_prices, stock_ids=[]):
     for stock_id in stock_ids:
         str_stock_id = str(stock_id)
 
-        try:
-            stock_data = get_stock_data(str_stock_id)
-        except:
-            stock_data = None
+        # try:
+        #     stock_data = get_stock_data(str_stock_id)
+        # except:
+        #     stock_data = None
+        #
+        # if stock_data is None:
+        #     continue
 
-        if stock_data is None:
-            continue
-
         try:
+            stock_data = read(str_stock_id)
+
             s_stock = get_predict_evaluate(stock_data, float(df_prices.loc[str_stock_id]))
         except Exception as e:
             print("Unexpected error:", e)
@@ -370,7 +374,10 @@ def generate_predictions2(df_prices, stock_ids=[]):
             print('Get error when get stock ', stock_id, ' stock_data = ', stock_data)
             error_stock_ids.append(stock_id)
             s_stock = None
-            break
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            error_stock_ids.append(stock_id)
+            s_stock = None
 
         if s_stock is None:
             continue

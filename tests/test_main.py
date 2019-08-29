@@ -203,30 +203,36 @@ class MainTest(unittest.TestCase):
     def test_integrate(self):
         # generate_predictions(['1470'])
         # generate_predictions(get_stock_codes(stock_type='上市'))
-        # create_stock_datas([2330, 6294])
+        # create_stock_datas([2474, 1227, 2105, 2327, 3213, 4974, 6294, 8066, 8103, 8210, 8416, 8905, 9927])
         # create_stock_datas(get_stock_codes(stock_type='上市'))
-        # create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        create_stock_datas(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(['3232'])
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
         # stock_data = get_stock_data(6294, True)
         # s_prediction = get_predict_evaluate(stock_data)
-        generate_predictions([1102])
+        # generate_predictions([1102])
         # print('prediction = ', s_prediction)
         # stock = Stock('1445')
         # print(stock.price)
 
+        # generate_predictions([1101])
+        # generate_predictions(get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃'))
+        # print('prediction = ', s_prediction)
+
+
     def test_tsec_crawler(self):
         crawler = Crawler()
-        df = crawler.get_data((2019, 8, 5))
+        df = crawler.get_data((2019, 8, 27))
         with pd.ExcelWriter(gen_output_path('data', 'prices.xlsx')) as writer:
             df.to_excel(writer)
             writer.close()
 
+
     def test_get_prediction(self):
-        df = None
         with open(gen_output_path('data', 'prices.xlsx'), 'rb') as file:
             df = pd.read_excel(file)
             file.close()
         prices = df.loc[:, '收盤價']
-        generate_predictions2(prices, ['2330', '6294'])
+        generate_predictions2(prices, get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃'))
+        # generate_predictions2(prices, [2474, 1227, 2105, 2327, 3213, 4974, 6294, 8066, 8103, 8210, 8416, 8905, 9927])
