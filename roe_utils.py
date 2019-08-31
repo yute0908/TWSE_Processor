@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 
 from tabulate import tabulate
@@ -13,7 +15,7 @@ def get_roe_in_season(stock_id, year, season):
     return roe
 
 
-def get_roe_recent_four_season(stock_id):
+def get_predict_roe_by_recent_four_season(stock_id):
     count = 4
     roe = None
 
@@ -23,6 +25,17 @@ def get_roe_recent_four_season(stock_id):
         count += 1
     return roe
 
+def get_predict_roe_by_relative(stock_id):
+    now_year = datetime.now().year
+    time_lines = get_time_lines(since={'year': now_year, 'season': 1})
+    last_time_available = next(time for time in time_lines[::-1] if _get_for_times(stock_id, [time]) is not None)
+    roe_current = _get_for_times(stock_id, time_lines[0: time_lines.index(last_time_available) + 1])
+    roe_last_year_relative = _get_for_times(stock_id, get_time_lines(since={'year': now_year - 1, 'season': 1},
+                                            to={'year': now_year - 1, 'season': last_time_available.get('season')}))
+    roe_relative = get_roe_in_year(stock_id, now_year - 1) * (roe_current / roe_last_year_relative)
+    print('roe_current = ', roe_current, ' roe_last_year_relative = ', roe_last_year_relative)
+
+    print('roe_relative = ', roe_relative)
 
 def get_roe_in_year(stock_id, year):
     time_lines = get_time_lines(since={'year': year, 'season': 1}, to={'year': year, 'season': 4})

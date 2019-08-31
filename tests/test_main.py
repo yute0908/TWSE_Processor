@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 
 import pandas as pd
 import requests
@@ -18,7 +19,7 @@ from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
-from utils import get_recent_seasons
+from utils import get_recent_seasons, get_time_lines
 from value_measurement import PriceMeasurementProcessor
 
 
@@ -122,11 +123,13 @@ class MainTest(unittest.TestCase):
         print(stock_count)
 
     def test_roe(self):
-        roe_utils.get_roe_in_season(2330, 2018, 4)
+        # roe_utils.get_roe_in_season(2330, 2018, 4)
         # roe_utils.get_recent_four_season(2330)
         # roe_utils.get_roe_in_year(2330, 2017)
         # roe_utils.get_in_year(2330, 2017)
         # roe_utils.get_roe_in_year(2330, 2019)
+        roe_utils.get_predict_roe_by_relative(2327)
+
 
     def test_get_matrix_level(self):
         matrix_level = get_matrix_level(3431, 2013)
@@ -203,9 +206,9 @@ class MainTest(unittest.TestCase):
     def test_integrate(self):
         # generate_predictions(['1470'])
         # generate_predictions(get_stock_codes(stock_type='上市'))
-        # create_stock_datas([2474, 1227, 2105, 2327, 3213, 4974, 6294, 8066, 8103, 8210, 8416, 8905, 9927])
+        create_stock_datas([2327])
         # create_stock_datas(get_stock_codes(stock_type='上市'))
-        create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        # create_stock_datas(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(['3232'])
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))

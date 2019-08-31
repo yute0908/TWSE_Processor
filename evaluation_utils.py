@@ -24,7 +24,7 @@ from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
 from rdss.utils import normalize_params
-from roe_utils import get_roe_in_year, get_roe_recent_four_season
+from roe_utils import get_roe_in_year, get_predict_roe_by_recent_four_season, get_predict_roe_by_relative
 from stock_data import StockData, store_df, read
 from twse_crawler import gen_output_path
 from utils import get_recent_seasons
@@ -284,7 +284,7 @@ def _sync_profit_matrix(stock_id, df_profit_matrix=None):
         if matrix_level is not None:
             dfs.append(matrix_level)
         # print('matrix_level in ', year, ' = ', matrix_level)
-    df_recent_four_season = _get_matrix_level_in_year(stock_id, None, True)
+    df_recent_four_season = _get_matrix_level_in_year(stock_id, now.year, True)
     if df_recent_four_season is not None:
         dfs.append(df_recent_four_season)
     data_frame = None if len(dfs) == 0 else pd.concat(dfs)
@@ -549,10 +549,21 @@ def get_matrix_level(stock_id, since_year, to_year=None):
     return data_frame
 
 
-def _get_matrix_level_in_year(stock_id, year, recent=False):
-    if year is None and recent is False:
+MATRIX_EVALUATE_RECENT = 0
+MATRIX_EVALUATE_RELATIVE = 1
+
+
+def _get_matrix_level_in_year(stock_id, year, recent=False, evaluate_method=MATRIX_EVALUATE_RECENT):
+    if year is None:
         return None
-    roe = get_roe_in_year(stock_id, year) if recent is False else get_roe_recent_four_season(stock_id)
+    if recent is False:
+        roe = get_roe_in_year(stock_id, year)
+    else:
+        if evaluate_method == MATRIX_EVALUATE_RELATIVE:
+            roe = get_predict_roe_by_relative(stock_id)
+        else:
+            roe = get_predict_roe_by_recent_four_season(stock_id)
+
     print('roe = ', roe)
     cash_flow_per_share_df = get_cash_flow_per_share(stock_id, since={'year': year, 'season': 1}, to={'year': year,
                                                                                                       'season': 4}) if recent is False else get_cash_flow_per_share_recent(
