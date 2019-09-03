@@ -553,7 +553,7 @@ MATRIX_EVALUATE_RECENT = 0
 MATRIX_EVALUATE_RELATIVE = 1
 
 
-def _get_matrix_level_in_year(stock_id, year, recent=False, evaluate_method=MATRIX_EVALUATE_RECENT):
+def _get_matrix_level_in_year(stock_id, year, recent=False, evaluate_method=MATRIX_EVALUATE_RELATIVE):
     if year is None:
         return None
     if recent is False:
@@ -633,7 +633,7 @@ def get_stock_codes_from_twse():
     return stock_codes
 
 
-def get_stock_codes(stock_type='上市'):
+def get_stock_codes(stock_type='上市', from_item=None):
     if stock_type == '上市':
         df_stocks = pd.read_csv(gen_output_path('data', '上市.csv'), engine='python', encoding='big5')
         list_stocks = df_stocks.loc[:, '公司代號'].values.tolist()
@@ -644,4 +644,8 @@ def get_stock_codes(stock_type='上市'):
         else:
             list_stocks = None
     print(list_stocks)
+    if list_stocks is not None and from_item is not None:
+        list_stocks = list_stocks[list_stocks.index(from_item):]
+        print(list_stocks)
+
     return list_stocks

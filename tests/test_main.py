@@ -128,7 +128,10 @@ class MainTest(unittest.TestCase):
         # roe_utils.get_roe_in_year(2330, 2017)
         # roe_utils.get_in_year(2330, 2017)
         # roe_utils.get_roe_in_year(2330, 2019)
-        roe_utils.get_predict_roe_by_relative(2327)
+        # roe_utils.get_predict_roe_by_relative(1213)
+        # roe_utils.get_predict_roe_by_relative(1101)
+        # roe_utils.get_predict_roe_by_relative(1413)
+        roe_utils.get_predict_roe_by_relative(2475)
 
 
     def test_get_matrix_level(self):
@@ -206,9 +209,10 @@ class MainTest(unittest.TestCase):
     def test_integrate(self):
         # generate_predictions(['1470'])
         # generate_predictions(get_stock_codes(stock_type='上市'))
-        create_stock_datas([2327])
-        # create_stock_datas(get_stock_codes(stock_type='上市'))
-        # create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        # create_stock_datas([1213])
+        create_stock_datas(get_stock_codes(stock_type='上市', from_item=2475))
+        create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        # get_stock_codes(stock_type='上市', from_item=1413)
         # create_profit_matrix(['3232'])
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
