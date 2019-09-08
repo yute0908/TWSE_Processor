@@ -25,7 +25,7 @@ from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
 from rdss.utils import normalize_params
 from roe_utils import get_roe_in_year, get_predict_roe_by_recent_four_season, get_predict_roe_by_relative
-from stock_data import StockData, store_df, read
+from stock_data import StockData, store_df, read, store
 from twse_crawler import gen_output_path
 from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor
@@ -145,6 +145,41 @@ def sync_data(stock_id):
     df_profit_matrix = _sync_profit_matrix(stock_id, None if stock_data is None else stock_data.df_profit_matrix)
     return StockData(stock_id, df_performance, df_statement,
                      df_profit_matrix) if df_statement is not None and df_performance is not None and df_profit_matrix is not None else None
+
+
+def resync_for_dividend_policy(stock_ids):
+    for stock_id in stock_ids:
+        print('start to resync ', stock_id)
+        _resync_dividend_policy(stock_id)
+
+
+def _resync_dividend_policy(stock_id):
+    stock_data = read(str(stock_id))
+    if stock_data is None:
+        return
+    print(stock_data.df_performance.index)
+    price_measurement_processor = PriceMeasurementProcessor(stock_id)
+    df_prices = price_measurement_processor.get_data_frame()
+    # print('index = ', df_prices.index)
+    # print('type = ', type(df_prices.index))
+
+    dividend_policy_processor = DividendPolicyProcessor(stock_id)
+    year_indexes = stock_data.df_performance.index.tolist()
+    df_dividend_policy = dividend_policy_processor.get_data_frames({'year': year_indexes[0]},
+                                                                   {'year': year_indexes[-1]})
+
+    prices = []
+    shares = []
+
+    for year in stock_data.df_performance.index.tolist():
+        prices.append(df_prices.loc[str(year), '平均股價'] if str(year) in df_prices.index else 0)
+        shares.append(df_dividend_policy.loc[str(year), '股息'] if str(year) in df_dividend_policy.index else float(0))
+
+    print('prices = ', prices)
+    print('result_share = ', shares)
+    stock_data.df_performance = stock_data.df_performance.assign(股息=shares).assign(平均股價=prices)
+    print('result = ', stock_data.df_performance)
+    store(stock_data)
 
 
 def _sync_performance(stock_id, df_statement, df_performance=None):

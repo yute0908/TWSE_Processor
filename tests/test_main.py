@@ -9,7 +9,7 @@ from twstock import Stock
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_predict_evaluate, \
     create_stock_datas, get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
-    get_stock_data, generate_predictions, get_matrix_value, generate_predictions2
+    get_stock_data, generate_predictions, get_matrix_value, generate_predictions2, resync_for_dividend_policy
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -243,3 +243,6 @@ class MainTest(unittest.TestCase):
         prices = df.loc[:, '收盤價']
         generate_predictions2(prices, get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃'))
         # generate_predictions2(prices, [2474, 1227, 2105, 2327, 3213, 4974, 6294, 8066, 8103, 8210, 8416, 8905, 9927])
+
+    def test_re_sync_dividend(self):
+        resync_for_dividend_policy([1102])

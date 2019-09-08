@@ -40,6 +40,8 @@ class PriceMeasurementProcessor(DataProcessor):
             df2 = df[[0, 4]]
             df2 = df2.rename(columns={0: '年度', 4: '平均股價'})
             df2 = df2.set_index(['年度'])
+            print('df2 = ', df2)
+            df2['平均股價'] = df2['平均股價'].map(lambda price: float(price) if price != '-' else float(0))
             # df2.index = pd.PeriodIndex(df2.index, freq='A')
 
         except Exception as inst:
