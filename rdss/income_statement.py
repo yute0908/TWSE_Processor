@@ -60,7 +60,7 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
                 # print(r)
                 if '每股盈餘' in r[0]:
                     dict_datas['EPS'] = float(r[1])
-                if '本期淨利' in r[0]:
+                if '本期綜合損益總額' in r[0]:
                     dict_datas['稅後淨利'] = int(r[1].replace(',', ''))
             return dict_datas
 

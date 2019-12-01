@@ -51,15 +51,29 @@ class ShareholderEquityProcessor(StatementProcessor):
         return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})
 
     def _get_data_dict(self, year, season):
-        result = self._data_fetcher.fetch({'stock_id': self._stock_id, 'year': year, 'season': season})
-        if result.ok is False:
-            return None
+        params_list = [
+            {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
+             'TYPEK': 'all', 'isnew': 'false', 'co_id': self._stock_id, 'year': year,
+             'season': season},
+            {'encodeURIComponent': 1, 'TYPEK': 'sii', 'step': 2, 'year': 108, 'season': 3, 'co_id': 2809,
+                  'firstin': 1}]
+        return_value = None
+        for params in params_list:
+            result = self._data_fetcher.fetch(params)
+            if result.ok is not False:
+                return_value = self._parse_data(result.content)
 
+        return return_value
+
+    def _parse_data(self, content):
         try:
-            bs = BeautifulSoup(result.content, 'html.parser')
+            bs = BeautifulSoup(content, 'html.parser')
             # print(bs.prettify())
             tables = bs.find_all('table', attrs={"class": "hasBorder", "align": "center"})
+
             if len(tables) < 1:
+                print('ShareholderEquityProcessor - error 1')
+
                 return None
 
             table = tables[0]
@@ -75,6 +89,8 @@ class ShareholderEquityProcessor(StatementProcessor):
                     if columns_raw[0].name == 'th' and len(headers) == 0:
                         headers = columns
                         if not all(field in headers for field in self.fields_to_get):
+                            print('ShareholderEquityProcessor - error 2')
+
                             return None
                     else:
                         rows_data.append(columns)
@@ -99,9 +115,3 @@ class ShareholderEquityProcessor(StatementProcessor):
 class _ShareholderEquityFetcher(DataFetcher):
     def __init__(self):
         super().__init__("https://mops.twse.com.tw/mops/web/ajax_t164sb06")
-
-    def fetch(self, params):
-        return super().fetch(
-            {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
-             'TYPEK': 'all', 'isnew': 'false', 'co_id': params['stock_id'], 'year': params['year'],
-             'season': params['season']})
