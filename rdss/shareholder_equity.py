@@ -62,6 +62,8 @@ class ShareholderEquityProcessor(StatementProcessor):
             result = self._data_fetcher.fetch(params)
             if result.ok is not False:
                 return_value = self._parse_data(result.content)
+            if return_value is not None:
+                break
 
         return return_value
 
