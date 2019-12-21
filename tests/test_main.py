@@ -1,15 +1,14 @@
 import unittest
-from datetime import datetime
 
 import pandas as pd
 import requests
 from tabulate import tabulate
-from twstock import Stock
 
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_predict_evaluate, \
     create_stock_datas, get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
-    get_stock_data, generate_predictions, get_matrix_value, generate_predictions2, resync_for_dividend_policy
+    get_stock_data, get_matrix_value, generate_predictions2, resync_for_dividend_policy, \
+    _sync_performance, _sync_statement
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -17,9 +16,10 @@ from rdss.fetcher import DataFetcher
 from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
+from stock_data import read
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
-from utils import get_recent_seasons, get_time_lines
+from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor
 
 
@@ -68,7 +68,10 @@ class MainTest(unittest.TestCase):
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
         data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2017, 'season': 2})
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        data_frame2 = ((data_frame['權益總額']['期初餘額'] + data_frame['權益總額']['期末餘額']) / 2)
+        # print(data_frame['權益總額']['期末餘額'])
+        print("result = ", data_frame2)
 
         # data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2018, 'season': 3})
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
@@ -151,9 +154,13 @@ class MainTest(unittest.TestCase):
         # print(stock_data.df_profit_matrix)
         # from stock_data import store
         # store(stock_data)
-        sync_data(1102)
+        sync_data(1101)
         # sync_data(1104)
         # sync_data(1101)
+
+    def test_sync_performance(self):
+        stock_data = read(str(1101))
+        _sync_performance(1101, stock_data.df_statement)
 
     def test_predict_evaluation(self):
         from stock_data import read
@@ -246,3 +253,7 @@ class MainTest(unittest.TestCase):
 
     def test_re_sync_dividend(self):
         resync_for_dividend_policy([1102])
+
+    def test_sync_statement(self):
+        statement = _sync_statement(1102)
+        # print(statement)

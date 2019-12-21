@@ -22,6 +22,7 @@ from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.income_statement import SimpleIncomeStatementProcessor
+from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
 from rdss.utils import normalize_params
 from roe_utils import get_roe_in_year, get_predict_roe_by_recent_four_season, get_predict_roe_by_relative
@@ -259,8 +260,12 @@ def _sync_statement(stock_id, df_statement=None):
         df_income_statement.sort_index(inplace=True)
         balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
         df_balance_sheet = balance_sheet_processor.get_data_frames({'year': 2013})
-        result = pd.concat([df_income_statement, df_balance_sheet], axis=1, sort=False)
+        shareholder_euity_processor = ShareholderEquityProcessor(2330)
+        shareholder_data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2013})
+        shareholder_data_frame2 = ((shareholder_data_frame['權益總額']['期初餘額'] + shareholder_data_frame['權益總額']['期末餘額']) / 2)
+        result = pd.concat([df_income_statement, df_balance_sheet, shareholder_data_frame2.rename('權益總額')], axis=1, sort=False)
         print('1 result = ', result)
+        # print('income statement')
 
     else:
         now = datetime.now()
