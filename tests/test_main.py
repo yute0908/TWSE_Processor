@@ -9,6 +9,8 @@ from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_pred
     create_stock_datas, get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
     get_stock_data, get_matrix_value, generate_predictions2, resync_for_dividend_policy, \
     _sync_performance, _sync_statement
+from evaluation_utils2 import _sync_statements, _sync_profit_statement, _sync_balance_sheet, _sync_cash_flow_statement, \
+    _sync_dividend_policy, sync_statements
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -16,11 +18,11 @@ from rdss.fetcher import DataFetcher
 from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
-from stock_data import read
+from stock_data import read, read_dfs
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
 from utils import get_recent_seasons
-from value_measurement import PriceMeasurementProcessor
+from value_measurement import PriceMeasurementProcessor, IndexType
 
 
 class MainTest(unittest.TestCase):
@@ -102,10 +104,11 @@ class MainTest(unittest.TestCase):
 
     def test_price_measurement(self):
         price_measurement_processor = PriceMeasurementProcessor(2330)
-        df = price_measurement_processor.get_data_frame()
+        df = price_measurement_processor.get_data_frame(indexType=IndexType.YEAR_INDEX)
         self.assertIsNotNone(df)
-        print(df.loc['2019', '平均股價'], type(df.loc['2019', '平均股價']))
-        self.assertTrue(df.loc[:, ['平均股價']] is not None)
+        # print(df.loc['2019', '平均股價'], type(df.loc['2019', '平均股價']))
+        # self.assertTrue(df.loc[:, ['平均股價']] is not None)
+        # print(df)
 
     def test_cash_flow_statement(self):
         cash_flow_processor = CashFlowStatementProcessor(2330)
@@ -115,15 +118,21 @@ class MainTest(unittest.TestCase):
         # data_frame = cash_flow_processor.get_data_frames(since={"year": 2016, "season": 2})
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
         data_frame = cash_flow_processor.get_data_frames(since={"year": 2013})
-        print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+        print(data_frame)
 
     def test_cash_flow_per_share(self):
         get_cash_flow_per_share(2330, {'year': 2018})
 
     def test_stock_count(self):
         stock_count_processor = StockCountProcessor()
-        stock_count = stock_count_processor.get_stock_count(2330, 2018)
-        print(stock_count)
+        # stock_count = stock_count_processor.get_stock_count(2330, 2018)
+        # stock_count = stock_count_processor.get_stock_count(6592, 2018)
+        # print(stock_count)
+        df_stock_count = stock_count_processor.get_data_frame(2330, 2014)
+
+        # df_stock_count = stock_count_processor.get_data_frame(6592, 2014)
+        print(df_stock_count)
 
     def test_roe(self):
         # roe_utils.get_roe_in_season(2330, 2018, 4)
@@ -161,6 +170,15 @@ class MainTest(unittest.TestCase):
     def test_sync_performance(self):
         stock_data = read(str(1101))
         _sync_performance(1101, stock_data.df_statement)
+
+    def test_sync_performance2(self):
+        # _sync_statements(1101)
+        # _sync_profit_statement(2013, 1101)
+        # _sync_balance_sheet(2018, 1101)
+        # _sync_cash_flow_statement(2013, 1101)
+        # _sync_dividend_policy(2013, 1101)
+        from evaluation_utils2 import _sync_performance
+        _sync_performance(read_dfs(1101, gen_output_path('data', 'output_temp_1101.xlsx')))
 
     def test_predict_evaluation(self):
         from stock_data import read
@@ -217,8 +235,8 @@ class MainTest(unittest.TestCase):
         # generate_predictions(['1470'])
         # generate_predictions(get_stock_codes(stock_type='上市'))
         # create_stock_datas([1213])
-        create_stock_datas(get_stock_codes(stock_type='上市'))
-        create_stock_datas(get_stock_codes(stock_type='上櫃'))
+        # create_stock_datas(get_stock_codes(stock_type='上市'))
+        # create_stock_datas(get_stock_codes(stock_type='上櫃'))
         # get_stock_codes(stock_type='上市', from_item=1413)
         # create_profit_matrix(['3232'])
         # create_profit_matrix(get_stock_codes(stock_type='上櫃'))
@@ -233,6 +251,9 @@ class MainTest(unittest.TestCase):
         # generate_predictions([1101])
         # generate_predictions(get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃'))
         # print('prediction = ', s_prediction)
+        sync_statements(get_stock_codes(stock_type='上市'))
+        sync_statements(get_stock_codes(stock_type='上櫃'))
+
 
 
     def test_tsec_crawler(self):
@@ -255,5 +276,7 @@ class MainTest(unittest.TestCase):
         resync_for_dividend_policy([1102])
 
     def test_sync_statement(self):
-        statement = _sync_statement(1102)
+        from evaluation_utils2 import _sync_statements
+        statement = _sync_statements(1262)
         # print(statement)
+

@@ -1,5 +1,6 @@
 import os
 import traceback
+from enum import Enum
 from urllib.parse import urlencode
 
 import pandas as pd
@@ -10,11 +11,16 @@ from data_processor import DataProcessor
 from twse_crawler import gen_output_path
 
 
+class IndexType(Enum):
+    INT_INDEX = 'int'
+    YEAR_INDEX = "year_index"
+
+
 class PriceMeasurementProcessor(DataProcessor):
     def __init__(self, stock_id):
         super().__init__(stock_id)
 
-    def get_data_frame(self, year=None, season=None):
+    def get_data_frame(self, year=None, season=None, indexType=IndexType.INT_INDEX):
         # create a new Firefox session
         path = os.path.abspath(gen_output_path("data"))
         print("path = ", path)
@@ -37,11 +43,24 @@ class PriceMeasurementProcessor(DataProcessor):
         print("path2 = ", file_path)
         try:
             df = pd.read_html(file_path)[0]
-            df2 = df[[0, 4]]
-            df2 = df2.rename(columns={0: '年度', 4: '平均股價'})
-            df2 = df2.set_index(['年度'])
-            print('df2 = ', df2)
-            df2['平均股價'] = df2['平均股價'].map(lambda price: float(price) if price != '-' else float(0))
+            years = self.__correct_years(df.loc[:, 0].tolist())
+            prices = list(map(lambda price: float(price) if price != '-' else float(0), df.loc[:, 4].tolist()))
+            if indexType == IndexType.INT_INDEX:
+                data = {'年度': years, '平均股價': prices}
+                df = pd.DataFrame(data)
+                df = df.set_index(['年度'])
+            else:
+                # periodIndexes = list(map(lambda year: pd.PeriodIndex(start=pd.Period(year, freq='Y'),
+                #                                                      end=pd.Period(year, freq='Y'),
+                #                                                      freq='Y'), years))
+                # print('periodIndex = ', periodIndexes)
+                periodIndex = pd.PeriodIndex(start=pd.Period(years[-1], freq='Y'), end=pd.Period(years[0], freq='Y'), freq='Y')
+                print(periodIndex)
+                print([prices[i:i+1] for i in range(0, len(prices))])
+                df = pd.DataFrame(data=[prices[i:i+1] for i in range(len(prices) - 1, -1, -1)], columns=['平均股價'], index=periodIndex)
+
+            print('df = ', df)
+            # df['平均股價'] = df['平均股價'].map(lambda price: float(price) if price != '-' else float(0))
             # df2.index = pd.PeriodIndex(df2.index, freq='A')
 
         except Exception as inst:
@@ -50,4 +69,22 @@ class PriceMeasurementProcessor(DataProcessor):
             return None
         finally:
             os.remove(file_path)
-        return df2
+        return df
+
+    def __correct_years(self, year_list):
+        revamp_list = []
+        for element in year_list:
+            try:
+                revamp_list.append(int(element))
+            except ValueError:
+                revamp_list.append(None)
+        index_list_not_none = [i for i, element in enumerate(revamp_list) if element is not None]
+        print(index_list_not_none)
+        for i in range(index_list_not_none[0] - 1, -1, -1):
+            revamp_list[i] = revamp_list[i + 1] + 1
+        print(revamp_list)
+        for i in range(index_list_not_none[0] + 1, len(revamp_list)):
+            revamp_list[i] = revamp_list[i - 1] - 1
+        print(revamp_list)
+
+        return revamp_list

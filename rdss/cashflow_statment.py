@@ -45,8 +45,9 @@ class CashFlowStatementProcessor(StatementProcessor):
                 cache_data_dict = self._get_data_dict(self._fetch_fields, year, season - 1)
                 if data_dict is None or cache_data_dict is None:
                     print('get None value in year ', year, ' season ', season, " data_dict = ", data_dict, " cache_data_dic = ", cache_data_dict)
-                for key in self._fetch_fields:
-                    data_dict[key] = data_dict.get(key, 0) - cache_data_dict.get(key, 0)
+                else:
+                    for key in self._fetch_fields:
+                        data_dict[key] = data_dict.get(key, 0) - cache_data_dict.get(key, 0)
             else:
                 cache_data_dict = None
             data_dict['業主盈餘現金流'] = data_dict.get('營業活動之淨現金流入', 0) + data_dict.get('取得不動產、廠房及設備', 0)\

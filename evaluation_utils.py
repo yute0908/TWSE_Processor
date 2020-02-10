@@ -15,7 +15,6 @@ from datetime import datetime
 from stem import Signal
 from stem.control import Controller
 from stem.process import launch_tor_with_config
-from twstock import Stock
 from urllib3.exceptions import NewConnectionError
 
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
@@ -26,7 +25,7 @@ from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
 from rdss.utils import normalize_params
 from roe_utils import get_roe_in_year, get_predict_roe_by_recent_four_season, get_predict_roe_by_relative
-from stock_data import StockData, store_df, read, store
+from stock_data import StockData, read, store
 from twse_crawler import gen_output_path
 from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor

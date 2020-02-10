@@ -66,6 +66,7 @@ def store_df(stock_id, dict_sheet_dfs, directory=None, filename=None):
 
     with pd.ExcelWriter(output_path) as writer:
         for sheet_name, df in dict_dfs.items():
+            print('sheet_name = ', sheet_name, " df = ", df)
             df.to_excel(writer, sheet_name=sheet_name)
         writer.close()
 
