@@ -251,9 +251,18 @@ class MainTest(unittest.TestCase):
         # generate_predictions([1101])
         # generate_predictions(get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃'))
         # print('prediction = ', s_prediction)
-        sync_statements(get_stock_codes(stock_type='上市'))
-        sync_statements(get_stock_codes(stock_type='上櫃'))
-
+        stock_code_list = get_stock_codes(stock_type='上市')
+        stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
+        # print('stock_code_list = ',stock_code_list)
+        dr_list = [9103, 910322, 910482, 9105, 910708, 910861, 9110, 911608, 911616, 911619, 911622, 911868, 912000,
+                   912398, 9136, 9157, 9188, 911613]
+        stock_code_list = list(filter(lambda stock_code: stock_code not in dr_list, stock_code_list))
+        print('stock_code = ', stock_code_list)
+        # print('index of 8996 = ', stock_code_list.index(1240))
+        # print('sub_list = ', stock_code_list[250:])
+        # sync_statements(get_stock_codes(stock_type='上市'))
+        # sync_statements(get_stock_codes(stock_type='上櫃'))
+        sync_statements(stock_code_list[stock_code_list.index(1240):])
 
 
     def test_tsec_crawler(self):
