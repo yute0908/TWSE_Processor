@@ -10,7 +10,7 @@ from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_pred
     get_stock_data, get_matrix_value, generate_predictions2, resync_for_dividend_policy, \
     _sync_performance, _sync_statement
 from evaluation_utils2 import _sync_statements, _sync_profit_statement, _sync_balance_sheet, _sync_cash_flow_statement, \
-    _sync_dividend_policy, sync_statements
+    _sync_dividend_policy, sync_statements, _read_df_datas, generate_prediction
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -18,7 +18,7 @@ from rdss.fetcher import DataFetcher
 from rdss.income_statement import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
-from stock_data import read, read_dfs
+from stock_data import read, read_dfs, store_df
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
 from utils import get_recent_seasons
@@ -172,13 +172,23 @@ class MainTest(unittest.TestCase):
         _sync_performance(1101, stock_data.df_statement)
 
     def test_sync_performance2(self):
-        # _sync_statements(1101)
+        _sync_statements(8013)
         # _sync_profit_statement(2013, 1101)
-        # _sync_balance_sheet(2018, 1101)
+        # df_balance_sheet = _sync_balance_sheet(2017, 2492)
+        # print('column = ', df_balance_sheet.columns)
+        # print('column values = ', df_balance_sheet.columns.values)
+        # print('column type = ', type(df_balance_sheet.columns))
         # _sync_cash_flow_statement(2013, 1101)
         # _sync_dividend_policy(2013, 1101)
         from evaluation_utils2 import _sync_performance
-        _sync_performance(read_dfs(1101, gen_output_path('data', 'output_temp_1101.xlsx')))
+        # _sync_performance(8103)
+        # _sync_performance(1340)
+        # df_performance = _sync_performance(2492)
+        # generate_prediction(1340, float(8.6))
+        generate_prediction(2492, float(160.5))
+        # get_stock_codes(stock_type='上市')
+        # df_statements['profit_statement'] = _sync_profit_statement(2013, 2492, df_statements.get('profit_statement', None))
+        # store_df(2492, df_statements, filename='statments_2492.xlsx')
 
     def test_predict_evaluation(self):
         from stock_data import read
@@ -262,12 +272,12 @@ class MainTest(unittest.TestCase):
         # print('sub_list = ', stock_code_list[250:])
         # sync_statements(get_stock_codes(stock_type='上市'))
         # sync_statements(get_stock_codes(stock_type='上櫃'))
-        sync_statements(stock_code_list[stock_code_list.index(1240):])
+        sync_statements(stock_code_list)
 
 
     def test_tsec_crawler(self):
         crawler = Crawler()
-        df = crawler.get_data((2019, 8, 27))
+        df = crawler.get_data((2020, 3, 27))
         with pd.ExcelWriter(gen_output_path('data', 'prices.xlsx')) as writer:
             df.to_excel(writer)
             writer.close()
@@ -286,6 +296,6 @@ class MainTest(unittest.TestCase):
 
     def test_sync_statement(self):
         from evaluation_utils2 import _sync_statements
-        statement = _sync_statements(1262)
+        statement = _sync_statements(2492)
         # print(statement)
 

@@ -675,6 +675,7 @@ def get_stock_codes_from_twse():
 def get_stock_codes(stock_type='上市', from_item=None):
     if stock_type == '上市':
         df_stocks = pd.read_csv(gen_output_path('data', '上市.csv'), engine='python', encoding='big5')
+        print(df_stocks.loc[:, ['公司代號', '公司簡稱']])
         list_stocks = df_stocks.loc[:, '公司代號'].values.tolist()
     else:
         if stock_type == '上櫃':
