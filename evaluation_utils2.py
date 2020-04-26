@@ -61,32 +61,38 @@ def generate_prediction(stock_id, price):
                                                                                         count_of_next_year_indexes),
                               'EPS'].sum()
     eps_next_year_current_q = df_profit_statement.loc[
-                              '{}Q1'.format(year_last_has_dividend_int + 1): '{}Q{}'.format(year_last_has_dividend_int + 1,
-                                                                                        count_of_next_year_indexes),
+                              '{}Q1'.format(year_last_has_dividend_int + 1): '{}Q{}'.format(
+                                  year_last_has_dividend_int + 1,
+                                  count_of_next_year_indexes),
                               'EPS'].sum()
 
-    predict_eps_next_year = eps_next_year_current_q if (count_of_next_year_indexes == 4) else (eps_last_year / eps_last_year_current_q) * eps_next_year_current_q
+    predict_eps_next_year = eps_next_year_current_q if (count_of_next_year_indexes == 4) else (
+                                                                                                      eps_last_year / eps_last_year_current_q) * eps_next_year_current_q
     predict_dividend_next_year = predict_eps_next_year * df_performance.loc[str(year_last_has_dividend), '兩年現金股利發放率']
     predict_sum_eps_two_year = predict_eps_next_year + eps_last_year
     predict_sum_dividend_two_year = predict_dividend_next_year + df_dividend_policy.loc[year_last_has_dividend, '現金股利']
     predict_dividend_ratio_two_years = predict_sum_dividend_two_year / predict_sum_eps_two_year
     df_balance_subset = df_balance_sheet.loc["{}Q{}".format(year_last_has_dividend_int, 1):]
     predict_avg_roe_two_years = predict_sum_eps_two_year / (
-                df_balance_subset.iloc[0].loc['每股淨值'] + df_balance_subset.iloc[-1].loc['每股淨值'])
+            df_balance_subset.iloc[0].loc['每股淨值'] + df_balance_subset.iloc[-1].loc['每股淨值'])
     predict_pe = price / predict_eps_next_year
     predict_growth_ratio_of_eps = predict_avg_roe_two_years * (1 - predict_dividend_ratio_two_years)
     predict_dividend_ratio = predict_dividend_next_year / price
-    peter_lynch_value = (predict_dividend_ratio + predict_growth_ratio_of_eps) / predict_pe * 100 if predict_pe > 0 else 0
+    peter_lynch_value = (
+                                predict_dividend_ratio + predict_growth_ratio_of_eps) / predict_pe * 100 if predict_pe > 0 else 0
 
     predict_cash_flow_per_share = df_cash_flow_statement.iloc[0: 8 if (count_of_next_year_indexes == 4) else 4].loc[:,
                                   '業主盈餘現金流'].sum() / df_dividend_policy.iloc[-1].loc['股數']
-    matrix_levels = [_get_matrix_level(predict_avg_roe_two_years, predict_cash_flow_per_share)] + df_performance.loc[:, '矩陣等級'].values.tolist()[::-1]
+    matrix_levels = [_get_matrix_level(predict_avg_roe_two_years, predict_cash_flow_per_share)] + df_performance.loc[:,
+                                                                                                  '矩陣等級'].values.tolist()[
+                                                                                                  ::-1]
     print('matrix_levels = ', matrix_levels)
+
     def peter_lynch_reverse(val):
         value = math.pow(predict_growth_ratio_of_eps, 2) + 4 * predict_dividend_next_year * (
-                    val / 100) / predict_eps_next_year
+                val / 100) / predict_eps_next_year
         return 0 if value <= 0 else (predict_growth_ratio_of_eps + math.sqrt(value)) / (
-                    2 * (val / 100) / predict_eps_next_year)
+                2 * (val / 100) / predict_eps_next_year)
 
     result = {'股價': price, '本益比': predict_pe, '彼得林區評價': peter_lynch_value,
               '彼得林區評價2倍股價': peter_lynch_reverse(2.0),
@@ -153,16 +159,18 @@ def _sync_performance(stock_id):
             fourth_q, '(權益總額, 期末餘額)']) / 2)
         roe = profit / shareholder_equity
 
-        cash_flow_per_share = df_cash_flow_statement.loc[fourth_q: first_q, '業主盈餘現金流'].sum() / df_dividend_policy.loc[str(year), '股數']
+        cash_flow_per_share = df_cash_flow_statement.loc[fourth_q: first_q, '業主盈餘現金流'].sum() / df_dividend_policy.loc[
+            str(year), '股數']
         try:
             dividend_yield = dividend_ratio_two_years / 2 / float(df_dividend_policy.loc[str(year), '平均股價'])
         except Exception as e:
             print('get', e, ' when get price for ', ' in ', year)
             dividend_yield = float(0)
-        dict_result = {'兩年現金股利發放率': dividend_ratio_two_years, '兩年平均ROE': avg_roe_two_years, '保留盈餘成長率': growth_ratio_of_eps,
-             '現金股利殖利率': dividend_yield, '高登模型預期報酬率': growth_ratio_of_eps + dividend_yield,
-             '兩年平均現金股利': dividend_in_two_years, 'ROE': roe, '每股業主盈餘現金流': cash_flow_per_share,
-             '矩陣等級': _get_matrix_level(roe, cash_flow_per_share)}
+        dict_result = {'兩年現金股利發放率': dividend_ratio_two_years, '兩年平均ROE': avg_roe_two_years,
+                       '保留盈餘成長率': growth_ratio_of_eps,
+                       '現金股利殖利率': dividend_yield, '高登模型預期報酬率': growth_ratio_of_eps + dividend_yield,
+                       '兩年平均現金股利': dividend_in_two_years, 'ROE': roe, '每股業主盈餘現金流': cash_flow_per_share,
+                       '矩陣等級': _get_matrix_level(roe, cash_flow_per_share)}
         dfs_result.append(pd.DataFrame([dict_result.values()], columns=dict_result.keys(),
                                        index=pd.PeriodIndex(start=pd.Period(year, freq='Y'),
                                                             end=pd.Period(year, freq='Y'), freq='Y')))
@@ -198,10 +206,11 @@ def _get_matrix_level(roe, cash_flow_per_share):
 
 def _sync_statements(stock_id):
     start_year = 2013
-    df_profit_statement = _sync_profit_statement(start_year, stock_id)
-    df_balance_sheet = _sync_balance_sheet(start_year, stock_id)
-    df_cash_flow_statement = _sync_cash_flow_statement(start_year, stock_id)
-    df_dividend_policy = _sync_dividend_policy(start_year, stock_id)
+    df_statements = _read_df_datas(stock_id)
+    df_profit_statement = _sync_profit_statement(start_year, stock_id, df_profit_statement=df_statements['profit_statement'])
+    df_balance_sheet = _sync_balance_sheet(start_year, stock_id, df_balance_sheet=df_statements['balance_sheet'])
+    df_cash_flow_statement = _sync_cash_flow_statement(start_year, stock_id, df_cash_flow_statement=df_statements['cash_flow_statement'])
+    df_dividend_policy = _sync_dividend_policy(start_year, stock_id, df_dividend_policy=df_statements['dividend_policy'])
     print('df_profit_statement = ', df_profit_statement)
     print('df_balance_sheet = ', df_balance_sheet)
     print('df_cash_flow_statement = ', df_cash_flow_statement)
@@ -216,10 +225,25 @@ def _sync_statements(stock_id):
              filename='statments_{0}.xlsx'.format(stock_id))
 
 
-def _sync_cash_flow_statement(start_year, stock_id):
+def _sync_cash_flow_statement(start_year, stock_id, df_cash_flow_statement=None):
     cash_flow_processor = CashFlowStatementProcessor(stock_id)
-    df_cash_flow_statement = cash_flow_processor.get_data_frames({'year': start_year - 1})
-    print('df_cash_flow_statement = ', df_cash_flow_statement)
+    if df_cash_flow_statement is None:
+        df_cash_flow_statement = cash_flow_processor.get_data_frames({'year': start_year - 1})
+    else:
+        time_lines = get_time_lines(since={'year': start_year})
+        dfs_get = []
+        index_string_list = df_cash_flow_statement.index.map(str).values.tolist()
+        for time_line in time_lines:
+            row_index = "{}Q{}".format(time_line['year'], time_line['season'])
+            if not (row_index in index_string_list):
+                df_statement = cash_flow_processor.get_data_frame(time_line['year'], time_line['season'])
+                if df_statement is not None:
+                    dfs_get.append(df_statement)
+
+        if len(dfs_get) > 0:
+            dfs_get.append(df_cash_flow_statement)
+            df_cash_flow_statement = pd.concat(dfs_get, sort=False).sort_index()
+
     return df_cash_flow_statement
 
 
@@ -230,8 +254,10 @@ def _sync_balance_sheet(start_year, stock_id, df_balance_sheet=None):
         time_lines = get_time_lines(since={'year': start_year})
         dfs_get = []
         for time_line in time_lines:
+
             row_index = "{}Q{}".format(time_line['year'], time_line['season'])
             val = df_balance_sheet.get(row_index, None)
+
             is_empty = val is None or len(val.values) == 0
             if is_empty:
                 df_balance = balance_sheet_processor.get_data_frame(time_line['year'], time_line['season'])
@@ -243,13 +269,10 @@ def _sync_balance_sheet(start_year, stock_id, df_balance_sheet=None):
         if len(dfs_get) > 0:
             dfs_get.append(df_balance_sheet)
             df_balance_sheet = pd.concat(dfs_get, sort=False).sort_index()
-            print('merge result = ', df_balance_sheet)
         return df_balance_sheet
     else:
         df_balance_statement = balance_sheet_processor.get_data_frames({'year': start_year - 1})
         df_shareholder_equity = shareholder_equity_processor.get_data_frames({'year': start_year - 1})
-        print('df_balance_statement = ', df_balance_statement)
-        print('df_shareholder_equity = ', df_shareholder_equity)
         if df_balance_statement is None or df_shareholder_equity is None:
             return None
         df_combine = df_balance_statement.join(df_shareholder_equity, how='outer')
@@ -263,13 +286,13 @@ def _sync_profit_statement(start_year, stock_id, df_profit_statement=None):
     income_statement_processor = SimpleIncomeStatementProcessor(stock_id)
     if df_profit_statement is None:
         df_profit_statement = income_statement_processor.get_data_frames({'year': start_year - 1})
-        print('df_profit_statement = ', df_profit_statement)
     else:
         time_lines = get_time_lines(since={'year': start_year})
         dfs_get = []
         for time_line in time_lines:
             row_index = "{}Q{}".format(time_line['year'], time_line['season'])
             val = df_profit_statement.get(row_index, None)
+
             is_empty = val is None or len(val.values) == 0
             if is_empty:
                 df_statement = income_statement_processor.get_data_frame(time_line['year'], time_line['season'])
@@ -278,35 +301,35 @@ def _sync_profit_statement(start_year, stock_id, df_profit_statement=None):
         if len(dfs_get) > 0:
             dfs_get.append(df_profit_statement)
             df_profit_statement = pd.concat(dfs_get, sort=False).sort_index()
-            print('df_profit_statement 2 = ', df_profit_statement)
     return df_profit_statement
 
 
-def _sync_dividend_policy(start_year, stock_id):
+def _sync_dividend_policy(start_year, stock_id, df_dividend_policy=None):
     # now = datetime.now()
     dividend_policy_processor = DividendPolicyProcessor(stock_id)
     # df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1}, {'year': now.year})
-    df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1})
-
     stock_count_processor = StockCountProcessor()
-    df_stock_count = stock_count_processor.get_data_frame(stock_id, start_year)
-
     price_measurement_processor = PriceMeasurementProcessor(stock_id)
-    df_prices = price_measurement_processor.get_data_frame(indexType=IndexType.YEAR_INDEX)
-    print("stock_counts = ", df_stock_count)
-    print('df_dividend_policy = ', df_dividend_policy)
-    print('df_prices = ', df_prices)
 
-    if df_stock_count is None or df_dividend_policy is None or df_prices is None:
-        return None
-    df_combine = df_dividend_policy.join(df_stock_count, how='outer').join(df_prices, how='outer')
-    indexes_to_drop = df_combine[df_combine['現金股利'].isna()].index
-    df_combine.drop(indexes_to_drop, inplace=True)
-    print('合併 = ', df_combine)
-    # print('test value ', df_combine.loc['2019']['現金股利'])
-    # print('test value ', pd.isna(df_combine.loc['2019']['現金股利']))
-    return df_combine
-
+    if df_dividend_policy is None:
+        df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1})
+        df_stock_count = stock_count_processor.get_data_frame(stock_id, start_year)
+        df_prices = price_measurement_processor.get_data_frame(indexType=IndexType.YEAR_INDEX)
+        print("stock_counts = ", df_stock_count)
+        print('df_dividend_policy = ', df_dividend_policy)
+        print('df_prices = ', df_prices)
+        if df_stock_count is None or df_dividend_policy is None or df_prices is None:
+            return None
+        df_combine = df_dividend_policy.join(df_stock_count, how='outer').join(df_prices, how='outer')
+        indexes_to_drop = df_combine[df_combine['現金股利'].isna()].index
+        df_combine.drop(indexes_to_drop, inplace=True)
+        print('合併 = ', df_combine)
+        # print('test value ', df_combine.loc['2019']['現金股利'])
+        # print('test value ', pd.isna(df_combine.loc['2019']['現金股利']))
+        return df_combine
+    else:
+        # TODO:// implement sync dividend
+        return df_dividend_policy
 
 def _read_df_datas(stock_id):
     df_statements = read_dfs(stock_id, gen_output_path('data', 'statments_{0}.xlsx'.format(str(stock_id))))

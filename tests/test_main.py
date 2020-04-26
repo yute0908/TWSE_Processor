@@ -272,7 +272,20 @@ class MainTest(unittest.TestCase):
         # print('sub_list = ', stock_code_list[250:])
         # sync_statements(get_stock_codes(stock_type='上市'))
         # sync_statements(get_stock_codes(stock_type='上櫃'))
-        sync_statements(stock_code_list)
+        # sync_statements(stock_code_list)
+
+    def test_sync(self):
+        sync_statements([2330])
+        # stock_id = 2330
+        # df_statements = _read_df_datas(stock_id)
+        # before = df_statements['dividend_policy']
+        # df_statements['dividend_policy'] = _sync_dividend_policy(2013, stock_id, df_statements.get('dividend_policy', None))
+        # print('before = ', before)
+        # print('after = ', df_statements['dividend_policy'])
+        # before = df_statements['profit_statement']
+        # df_statements['profit_statement'] = _sync_profit_statement(2013, stock_id, df_statements.get('profit_statement', None))
+        # print('before = ', before)
+        # print('after = ', df_statements['profit_statement'])
 
 
     def test_tsec_crawler(self):
