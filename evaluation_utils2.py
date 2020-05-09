@@ -1,4 +1,5 @@
 import math
+import sys
 import time
 import traceback
 from datetime import datetime
@@ -17,7 +18,7 @@ from utils import get_time_lines
 from value_measurement import PriceMeasurementProcessor, IndexType
 
 
-def sync_statements(stock_codes):
+def sync_statements(stock_codes, times_to_retry=10, break_after_retry=True):
     print('stock_codes = ', stock_codes)
     retry = 0
     for stock_code in stock_codes:
@@ -31,11 +32,66 @@ def sync_statements(stock_codes):
                 retry += 1
                 print("get exception", e)
                 traceback.print_tb(e.__traceback__)
-                if retry >= 10:
+                if retry >= times_to_retry:
                     print("retry for 10 times to get stock ", stock_code)
-                    exit(-1)
+
+                    if break_after_retry:
+                        exit(-1)
+                    get_data = True
                 else:
                     time.sleep(60 * 10)
+
+
+def sync_performance(stock_codes):
+    error_ids = []
+    for stock_id in stock_codes:
+        print('process ', stock_id)
+        try:
+            _sync_performance(stock_id)
+        except Exception as e:
+            error_ids.append(stock_id)
+    return error_ids
+
+
+def generate_predictions(df_prices, stock_ids=[]):
+    error_stock_ids = []
+    results = None
+    df_predictions = None
+
+    for stock_id in stock_ids:
+        str_stock_id = str(stock_id)
+        try:
+            result = generate_prediction(stock_id, float(df_prices.loc[str_stock_id]))
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            error_stock_ids.append(stock_id)
+            result = None
+
+        if result is not None:
+            if results is None:
+                results = {'股號': [stock_id]}
+                results.update(dict(map(lambda x: (x[0], [x[1]]), result.items())))
+
+                print(list(results.keys()))
+                # df_predictions = pd.DataFrame(result)
+                # df_predictions['股號'] = [str_stock_id]
+                # df_predictions = df_predictions.set_index('股號')
+                print("first record")
+                # print(df_predictions)
+            else:
+                for pair in result.items():
+                    results[pair[0]].append(pair[1])
+                results['股號'].append(stock_id)
+                print('results = ', results)
+
+    df_predictions = pd.DataFrame(results)
+    df_predictions = df_predictions.set_index('股號')
+    print("index = ", df_predictions.index)
+    print("column = ", df_predictions.columns)
+    output_path = gen_output_path('data', 'evaluations.xlsx')
+    with pd.ExcelWriter(output_path) as writer:
+        df_predictions.to_excel(writer, sheet_name='predictions')
+    return error_stock_ids
 
 
 def generate_prediction(stock_id, price):
@@ -112,6 +168,7 @@ def generate_prediction(stock_id, price):
     print('predict_cash_flow_per_share = ', predict_cash_flow_per_share)
     print('peter_lynch_value = ', peter_lynch_value)
     print('result = ', result)
+    return result
 
 
 matrix_value_dic = {"A": 12, "B1": 8, "B2": 6, "C": 4, "C1": 2, "C2": 1, "D": 0}
