@@ -6,6 +6,7 @@ from datetime import datetime
 
 import pandas as pd
 
+from evaluation_utils import get_stock_list
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -58,18 +59,20 @@ def generate_predictions(df_prices, stock_ids=[]):
     results = None
     df_predictions = None
 
+    df_stock_list = _get_stock_list()
     for stock_id in stock_ids:
         str_stock_id = str(stock_id)
         try:
             result = generate_prediction(stock_id, float(df_prices.loc[str_stock_id]))
-        except:
+        except Exception as e:
             print("Unexpected error:", sys.exc_info()[0])
+            traceback.print_tb(e.__traceback__)
             error_stock_ids.append(stock_id)
             result = None
 
         if result is not None:
             if results is None:
-                results = {'股號': [stock_id]}
+                results = {'公司代號': [stock_id], '公司簡稱': [df_stock_list.loc[str_stock_id, '公司簡稱']]}
                 results.update(dict(map(lambda x: (x[0], [x[1]]), result.items())))
 
                 print(list(results.keys()))
@@ -81,17 +84,24 @@ def generate_predictions(df_prices, stock_ids=[]):
             else:
                 for pair in result.items():
                     results[pair[0]].append(pair[1])
-                results['股號'].append(stock_id)
+                results['公司代號'].append(stock_id)
+                results['公司簡稱'].append(df_stock_list.loc[str_stock_id, '公司簡稱'])
                 print('results = ', results)
 
     df_predictions = pd.DataFrame(results)
-    df_predictions = df_predictions.set_index('股號')
-    print("index = ", df_predictions.index)
-    print("column = ", df_predictions.columns)
+    df_predictions = df_predictions.set_index('公司代號')
+    print("result = ", df_predictions)
     output_path = gen_output_path('data', 'evaluations.xlsx')
     with pd.ExcelWriter(output_path) as writer:
         df_predictions.to_excel(writer, sheet_name='predictions')
     return error_stock_ids
+
+
+def _get_stock_list():
+    df_stock_list = get_stock_list(stock_type='上市').append(get_stock_list(stock_type='上櫃'))
+    df_stock_list['公司代號'] = df_stock_list['公司代號'].map(lambda stock_id: str(stock_id))
+    df_stock_list = df_stock_list.set_index('公司代號')
+    return df_stock_list
 
 
 def generate_prediction(stock_id, price):

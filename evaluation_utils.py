@@ -673,19 +673,21 @@ def get_stock_codes_from_twse():
 
 
 def get_stock_codes(stock_type='上市', from_item=None):
-    if stock_type == '上市':
-        df_stocks = pd.read_csv(gen_output_path('data', '上市.csv'), engine='python', encoding='big5')
-        print(df_stocks.loc[:, ['公司代號', '公司簡稱']])
-        list_stocks = df_stocks.loc[:, '公司代號'].values.tolist()
-    else:
-        if stock_type == '上櫃':
-            df_stocks = pd.read_csv(gen_output_path('data', '上櫃.csv'), engine='python', encoding='big5')
-            list_stocks = df_stocks.loc[:, '公司代號'].values.tolist()
-        else:
-            list_stocks = None
+    df_stocks = get_stock_list(stock_type)
+    list_stocks = df_stocks.loc[:, '公司代號'].values.tolist() if df_stocks is not None else None
     print(list_stocks)
     if list_stocks is not None and from_item is not None:
         list_stocks = list_stocks[list_stocks.index(from_item):]
         print(list_stocks)
 
     return list_stocks
+
+
+def get_stock_list(stock_type='上市'):
+    df_stocks = None
+    if stock_type == '上市':
+        df_stocks = pd.read_csv(gen_output_path('data', '上市.csv'), engine='python', encoding='big5')
+
+    elif stock_type == '上櫃':
+        df_stocks = pd.read_csv(gen_output_path('data', '上櫃.csv'), engine='python', encoding='big5')
+    return df_stocks

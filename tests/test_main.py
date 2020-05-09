@@ -8,7 +8,7 @@ import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_predict_evaluate, \
     create_stock_datas, get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
     get_stock_data, get_matrix_value, generate_predictions2, resync_for_dividend_policy, \
-    _sync_performance, _sync_statement
+    _sync_performance, _sync_statement, get_stock_list
 from evaluation_utils2 import _sync_statements, _sync_profit_statement, _sync_balance_sheet, _sync_cash_flow_statement, \
     _sync_dividend_policy, sync_statements, _read_df_datas, generate_prediction, sync_performance, generate_predictions
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
@@ -299,7 +299,7 @@ class MainTest(unittest.TestCase):
         print('count of errors before = ', len(error_ids), ' after = ', len(error_ids_after))
 
     def test_sync(self):
-        sync_statements([2330])
+        # sync_statements([2330])
         # stock_id = 2330
         # df_statements = _read_df_datas(stock_id)
         # before = df_statements['dividend_policy']
@@ -310,11 +310,15 @@ class MainTest(unittest.TestCase):
         # df_statements['profit_statement'] = _sync_profit_statement(2013, stock_id, df_statements.get('profit_statement', None))
         # print('before = ', before)
         # print('after = ', df_statements['profit_statement'])
+        df_stock_list = get_stock_list(stock_type='上市')
+        df_stock_list['公司代號'] = df_stock_list['公司代號'].map(lambda stock_id: str(stock_id))
+        df_stock_list = df_stock_list.set_index('公司代號')
+        print(df_stock_list.loc['2330',:])
 
 
     def test_tsec_crawler(self):
         crawler = Crawler()
-        df = crawler.get_data((2020, 4, 30))
+        df = crawler.get_data((2020, 5, 8))
         with pd.ExcelWriter(gen_output_path('data', 'prices.xlsx')) as writer:
             df.to_excel(writer)
             writer.close()
