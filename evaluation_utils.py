@@ -20,7 +20,7 @@ from urllib3.exceptions import NewConnectionError
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
-from rdss.income_statement import SimpleIncomeStatementProcessor
+from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
 from rdss.utils import normalize_params

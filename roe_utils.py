@@ -4,7 +4,7 @@ import pandas as pd
 
 from tabulate import tabulate
 
-from rdss.income_statement import SimpleIncomeStatementProcessor
+from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from utils import get_recent_seasons, get_time_lines
 

@@ -10,7 +10,7 @@ from evaluation_utils import get_stock_list
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
-from rdss.income_statement import SimpleIncomeStatementProcessor
+from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
 from stock_data import store_df, read_dfs

@@ -4,7 +4,7 @@ import traceback
 from bs4 import BeautifulSoup
 
 from rdss.parsers import DataFrameParser
-from rdss.simple_statments_fetcher import _SimpleStatementsFetcher
+from rdss.simple_statments_fetcher import _SimpleBalanceStatementsFetcher
 from rdss.statement_processor import StatementProcessor
 from utils import get_time_lines
 
@@ -13,7 +13,7 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
 
     def __init__(self, stock_id):
         super().__init__(stock_id)
-        self.__data_fetcher = _SimpleStatementsFetcher()
+        self.__data_fetcher = _SimpleBalanceStatementsFetcher()
         self.__data_parser = _IncomeStatementParser()
 
     def get_data_frames(self, since, to=None):

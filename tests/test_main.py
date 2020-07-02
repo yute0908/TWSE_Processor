@@ -2,6 +2,7 @@ import unittest
 
 import pandas as pd
 import requests
+from bs4 import BeautifulSoup
 from tabulate import tabulate
 
 import roe_utils
@@ -15,7 +16,7 @@ from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.fetcher import DataFetcher
-from rdss.income_statement import SimpleIncomeStatementProcessor
+from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
 from stock_data import read, read_dfs, store_df
@@ -84,14 +85,58 @@ class MainTest(unittest.TestCase):
         # self.assertIsNotNone(data_frame)
         # self.assertTrue(data_frame.loc['2018Q2', '每股淨值'] is not None)
         #
-        data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016})
+        # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016})
+        data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016, 'season': 1},
+                                                             to={'year': 2016, 'season': 1})
         print(data_frame)
         # print(data_frame.loc["2016Q1", '每股淨值'])
-        print(data_frame.iloc[[-1, -8],].loc[:, '每股淨值'].sum())
+        # print(data_frame.iloc[[-1, -8],].loc[:, '每股淨值'].sum())
         #
         # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2019})
         # print(data_frame)
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
+
+    def test_get_balance_sheet(self):
+        balance_sheet_processor = SimpleBalanceSheetProcessor(2330)
+        trs = balance_sheet_processor.get_balance_sheet(year=2020, season=1)
+        output_path = gen_output_path('test_balance_sheets', 'test')
+        with open(output_path, 'w') as output:
+            output.writelines("%s\n" % ';'.join(tr) for tr in trs)
+            output.close()
+        print('trs = ', trs)
+
+    def test_get_raw_data(self):
+        stock_list = get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃')
+        error_ids = []
+        for stock_id in stock_list:
+            balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
+            raw_data = balance_sheet_processor.get_raw_data(year=2020, season=1)
+            if raw_data is not None:
+                file_name = "balance_sheet_data_ " + str(stock_id)
+                output_path = gen_output_path('raw_datas/test_balance_sheets', file_name)
+                with open(output_path, 'wb') as output:
+                    output.write(raw_data)
+                    output.close()
+            else:
+                error_ids.append(stock_id)
+        print('error_ids = ', error_ids)
+
+    def test_parse_balance_sheet(self):
+        input_path = gen_output_path('raw_datas/test_balance_sheets', 'test2')
+        year = 2016
+        season = 1
+        balance_sheet_processor = SimpleBalanceSheetProcessor(2330)
+        with open(input_path, 'rb') as in_put:
+            # str_trs = in_put.readlines()
+            raw_input = in_put.read()
+            in_put.close()
+            soup = BeautifulSoup(raw_input, 'html.parser')
+            print(soup.prettify())
+            parse_data = balance_sheet_processor.parse_balance_sheet(soup, year, season)
+            print(parse_data)
+
+
+
 
     def test_dividend_policy(self):
         dividend_policy_processor = DividendPolicyProcessor(6294)

@@ -11,7 +11,7 @@ from stem.process import launch_tor_with_config
 from torrequest import TorRequest
 
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
-from rdss.income_statement import SimpleIncomeStatementProcessor
+from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from twse_crawler import gen_output_path
 
 
