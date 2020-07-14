@@ -86,33 +86,20 @@ class MainTest(unittest.TestCase):
         # self.assertTrue(data_frame.loc['2018Q2', '每股淨值'] is not None)
         #
         # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016})
-        data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016, 'season': 1},
-                                                             to={'year': 2016, 'season': 1})
-        print(data_frame)
-        # print(data_frame.loc["2016Q1", '每股淨值'])
-        # print(data_frame.iloc[[-1, -8],].loc[:, '每股淨值'].sum())
-        #
-        # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2019})
-        # print(data_frame)
-        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
-
-    def test_get_balance_sheet(self):
-        balance_sheet_processor = SimpleBalanceSheetProcessor(2330)
-        trs = balance_sheet_processor.get_balance_sheet(year=2020, season=1)
-        output_path = gen_output_path('test_balance_sheets', 'test')
-        with open(output_path, 'w') as output:
-            output.writelines("%s\n" % ';'.join(tr) for tr in trs)
-            output.close()
-        print('trs = ', trs)
+        # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016, 'season': 1},
+        #                                                      to={'year': 2016, 'season': 1})
+        data_frame = balance_sheet_processor.get_data_frame(2020, 1)
+        print('balance_sheet = ', data_frame)
 
     def test_get_raw_data(self):
-        stock_list = get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃')
+        # stock_list = get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃')
+        stock_list = [2809, 2812, 2816, 2820, 2823, 2832, 2834, 2836, 2838, 2841, 2845, 2849, 2850, 2851, 2852, 2855, 2867, 2880, 2881, 2882, 2883, 2884, 2885, 2886, 2887, 2888, 2889, 2890, 2891, 2892, 2897, 5871, 5876, 5880, 5820, 5864, 5878]
         error_ids = []
         for stock_id in stock_list:
             balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
-            raw_data = balance_sheet_processor.get_raw_data(year=2020, season=1)
+            raw_data = balance_sheet_processor.get_balance_sheet_raw_data(year=2020, season=1)
             if raw_data is not None:
-                file_name = "balance_sheet_data_ " + str(stock_id)
+                file_name = "balance_sheet_data_" + str(stock_id)
                 output_path = gen_output_path('raw_datas/test_balance_sheets', file_name)
                 with open(output_path, 'wb') as output:
                     output.write(raw_data)
@@ -122,21 +109,37 @@ class MainTest(unittest.TestCase):
         print('error_ids = ', error_ids)
 
     def test_parse_balance_sheet(self):
-        input_path = gen_output_path('raw_datas/test_balance_sheets', 'test2')
-        year = 2016
-        season = 1
-        balance_sheet_processor = SimpleBalanceSheetProcessor(2330)
-        with open(input_path, 'rb') as in_put:
-            # str_trs = in_put.readlines()
-            raw_input = in_put.read()
-            in_put.close()
-            soup = BeautifulSoup(raw_input, 'html.parser')
-            print(soup.prettify())
-            parse_data = balance_sheet_processor.parse_balance_sheet(soup, year, season)
-            print(parse_data)
-
-
-
+        # stock_list = get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃')
+        stock_list = [2801]
+        # stock_list = [1409]
+        empty_list = []
+        non_investment = []
+        non_property = []
+        for stock_id in stock_list:
+            # print('parse ', stock_id)
+            file_name = "balance_sheet_data_" + str(stock_id)
+            input_path = gen_output_path('raw_datas/test_balance_sheets', file_name)
+            year = 2020
+            season = 1
+            balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
+            with open(input_path, 'rb') as in_put:
+                # str_trs = in_put.readlines()
+                raw_input = in_put.read()
+                in_put.close()
+                soup = BeautifulSoup(raw_input, 'html.parser')
+                # print(soup.prettify())
+                parse_data = balance_sheet_processor.parse_balance_sheet(soup, year, season)
+                if parse_data is not None and len(parse_data) < 2:
+                    if len(parse_data) == 0:
+                        empty_list.append(stock_id)
+                    else:
+                        if '長期投資' not in parse_data:
+                            non_investment.append(stock_id)
+                        if '固定資產' not in parse_data:
+                            non_property.append(stock_id)
+        print('empty_list = ', empty_list)
+        print('non_investment = ', non_investment)
+        print('non_property = ', non_property)
 
     def test_dividend_policy(self):
         dividend_policy_processor = DividendPolicyProcessor(6294)
@@ -190,7 +193,6 @@ class MainTest(unittest.TestCase):
         # roe_utils.get_predict_roe_by_relative(1413)
         # roe_utils.get_predict_roe_by_relative(2475)
 
-
     def test_get_matrix_level(self):
         matrix_level = get_matrix_level(3431, 2013)
         print('matrix_level = ', matrix_level)
@@ -231,7 +233,6 @@ class MainTest(unittest.TestCase):
         # _sync_performance(1340)
         # df_performance = _sync_performance(2492)
         # generate_prediction(1340, float(8.6))
-        (2492, float(160.5))
         # get_stock_codes(stock_type='上市')
         # df_statements['profit_statement'] = _sync_profit_statement(2013, 2492, df_statements.get('profit_statement', None))
         # store_df(2492, df_statements, filename='statments_2492.xlsx')
@@ -265,7 +266,6 @@ class MainTest(unittest.TestCase):
         stock_data = read('1102')
         get_matrix_value(stock_data)
 
-
     def test_read_stock_data(self):
         from stock_data import read
         stock_data = read('1101')
@@ -274,7 +274,6 @@ class MainTest(unittest.TestCase):
         print(stock_data.df_statement)
         print(stock_data.df_performance)
         print(stock_data.df_profit_matrix)
-
 
     def test_generate_time_lines(self):
         self.assertEqual(len(get_recent_seasons(0)), 0)
@@ -310,16 +309,16 @@ class MainTest(unittest.TestCase):
         stock_code_list = get_stock_codes(stock_type='上市')
         stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
         # print('stock_code_list = ',stock_code_list)
-        dr_list = [1262, 9103, 910322, 910482, 9105, 910708, 910861, 9110, 911608, 911616, 911619, 911622, 911868, 912000,
+        dr_list = [1262, 9103, 910322, 910482, 9105, 910708, 910861, 9110, 911608, 911616, 911619, 911622, 911868,
+                   912000,
                    912398, 9136, 9157, 9188, 911613]
         stock_code_list = list(filter(lambda stock_code: stock_code not in dr_list, stock_code_list))
         print('stock_code = ', stock_code_list)
-        print('index of 1566 = ', stock_code_list.index(1566)) #1566, 1787
+        print('index of 1566 = ', stock_code_list.index(1566))  # 1566, 1787
         # print('sub_list = ', stock_code_list[250:])
         # sync_statements(get_stock_codes(stock_type='上市'))
         # sync_statements(get_stock_codes(stock_type='上櫃'))
         # sync_statements(stock_code_list[stock_code_list.index(1787) + 1:])
-
 
     def test_resync(self):
         error_ids = [1341, 1417, 1587, 1592, 1598, 1760, 1776, 2069, 2236, 2243, 2475, 2630, 2633, 2634, 2739, 2841,
@@ -358,8 +357,7 @@ class MainTest(unittest.TestCase):
         df_stock_list = get_stock_list(stock_type='上市')
         df_stock_list['公司代號'] = df_stock_list['公司代號'].map(lambda stock_id: str(stock_id))
         df_stock_list = df_stock_list.set_index('公司代號')
-        print(df_stock_list.loc['2330',:])
-
+        print(df_stock_list.loc['2330', :])
 
     def test_tsec_crawler(self):
         crawler = Crawler()
@@ -367,7 +365,6 @@ class MainTest(unittest.TestCase):
         with pd.ExcelWriter(gen_output_path('data', 'prices.xlsx')) as writer:
             df.to_excel(writer)
             writer.close()
-
 
     def test_get_prediction(self):
         with open(gen_output_path('data', 'prices.xlsx'), 'rb') as file:
@@ -383,6 +380,5 @@ class MainTest(unittest.TestCase):
 
     def test_sync_statement(self):
         from evaluation_utils2 import _sync_statements
-        statement = _sync_statements(2492)
+        statement = _sync_statements(2330)
         # print(statement)
-

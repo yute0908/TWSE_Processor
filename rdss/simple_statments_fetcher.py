@@ -24,3 +24,9 @@ class _BalanceStatementsFetcher(DataFetcher):
             {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id", "inpuType": "co_id",
              "TYPEK": "all", "isnew": "false", "co_id": params['stock_id'], "year": params['year'],
              "season": params['season']})
+
+    def fetch_second_step_2(self, params):
+        return super().fetch(
+            {"encodeURIComponent": 1, "step": 2, "firstin": 1, "TYPEK": "sii", "co_id": params['stock_id'],
+             "year": params['year'], "season": params['season']}
+        )
