@@ -402,7 +402,7 @@ def _read_df_datas(stock_id):
     df_statements = read_dfs(stock_id, gen_output_path('data', 'statments_{0}.xlsx'.format(str(stock_id))))
     if df_statements is None:
         df_statements = {}
-
+    df_statements['balance_sheet'] = None
     df_profit_statement = df_statements.get('profit_statement', None)
     df_balance_sheet = df_statements.get('balance_sheet', None)
     df_cash_flow_statement = df_statements.get('cash_flow_statement', None)
