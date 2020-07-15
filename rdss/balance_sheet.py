@@ -22,7 +22,7 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
         dict_simple_balance_sheet = dict_generator(self.get_simple_balance_sheet_raw_data(year, season),
                                                    self.__parse_simple_balance_sheet)
         dict_balance_sheet = dict_generator(self.get_balance_sheet_raw_data(year, season), self.parse_from_raw_data)
-        if dict_balance_sheet is None or dict_balance_sheet is None:
+        if dict_simple_balance_sheet is None or dict_balance_sheet is None:
             return None
         else:
             dict_balance_sheet.update(dict_simple_balance_sheet)
@@ -144,10 +144,8 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
             #     if '每股淨值' in r[0]:
             #         dict_datas['每股淨值'] = float(r[1])
             # return list(filtered_trs)
-            if len(record_long_term_investment) > 0:
-                dict_datas['長期投資'] = record_long_term_investment[0]
-            if len(record_property) > 0:
-                dict_datas['固定資產'] = record_property[0]
+            dict_datas['長期投資'] = record_long_term_investment[0] if (len(record_long_term_investment) > 0) else 0
+            dict_datas['固定資產'] = record_property[0] if (len(record_property) > 0) else 0
             return dict_datas
         except Exception as inst:
             print("get exception", inst)

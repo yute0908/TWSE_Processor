@@ -318,7 +318,7 @@ class MainTest(unittest.TestCase):
         # print('sub_list = ', stock_code_list[250:])
         # sync_statements(get_stock_codes(stock_type='上市'))
         # sync_statements(get_stock_codes(stock_type='上櫃'))
-        # sync_statements(stock_code_list[stock_code_list.index(1787) + 1:])
+        sync_statements(stock_code_list, times_to_retry = 2, break_after_retry= False)
 
     def test_resync(self):
         error_ids = [1341, 1417, 1587, 1592, 1598, 1760, 1776, 2069, 2236, 2243, 2475, 2630, 2633, 2634, 2739, 2841,
