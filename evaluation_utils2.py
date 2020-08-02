@@ -34,7 +34,7 @@ def sync_statements(stock_codes, times_to_retry=10, break_after_retry=True):
                 print("get exception", e)
                 traceback.print_tb(e.__traceback__)
                 if retry >= times_to_retry:
-                    print("retry for 10 times to get stock ", stock_code)
+                    print("retry for ", retry, " times to get stock ", stock_code)
 
                     if break_after_retry:
                         exit(-1)
@@ -50,6 +50,7 @@ def sync_performance(stock_codes):
         try:
             _sync_performance(stock_id)
         except Exception as e:
+            traceback.print_tb(e.__traceback__)
             error_ids.append(stock_id)
     return error_ids
 
@@ -255,8 +256,8 @@ def _sync_performance(stock_id):
 def _normalize_balance_sheet(df_statements):
     df_balance_sheet = df_statements['balance_sheet'].copy()
     column_list = df_balance_sheet.columns.tolist()
-    column_list[1] = '(權益總額, 期初餘額)'
-    column_list[2] = '(權益總額, 期末餘額)'
+    column_list[3] = '(權益總額, 期初餘額)'
+    column_list[4] = '(權益總額, 期末餘額)'
     df_balance_sheet.columns = column_list
     return df_balance_sheet
 
@@ -274,10 +275,10 @@ def _get_matrix_level(roe, cash_flow_per_share):
 def _sync_statements(stock_id):
     start_year = 2013
     df_statements = _read_df_datas(stock_id)
-    df_profit_statement = _sync_profit_statement(start_year, stock_id, df_profit_statement=df_statements['profit_statement'])
-    df_balance_sheet = _sync_balance_sheet(start_year, stock_id, df_balance_sheet=df_statements['balance_sheet'])
-    df_cash_flow_statement = _sync_cash_flow_statement(start_year, stock_id, df_cash_flow_statement=df_statements['cash_flow_statement'])
-    df_dividend_policy = _sync_dividend_policy(start_year, stock_id, df_dividend_policy=df_statements['dividend_policy'])
+    df_profit_statement = _sync_profit_statement(start_year, stock_id, df_profit_statement=df_statements.get('profit_statement', None))
+    df_balance_sheet = _sync_balance_sheet(start_year, stock_id, df_balance_sheet=df_statements.get('balance_sheet', None))
+    df_cash_flow_statement = _sync_cash_flow_statement(start_year, stock_id, df_cash_flow_statement=df_statements.get('cash_flow_statement', None))
+    df_dividend_policy = _sync_dividend_policy(start_year, stock_id, df_dividend_policy=df_statements.get('dividend_policy', None))
     print('df_profit_statement = ', df_profit_statement)
     print('df_balance_sheet = ', df_balance_sheet)
     print('df_cash_flow_statement = ', df_cash_flow_statement)
@@ -402,7 +403,6 @@ def _read_df_datas(stock_id):
     df_statements = read_dfs(stock_id, gen_output_path('data', 'statments_{0}.xlsx'.format(str(stock_id))))
     if df_statements is None:
         df_statements = {}
-    df_statements['balance_sheet'] = None
     df_profit_statement = df_statements.get('profit_statement', None)
     df_balance_sheet = df_statements.get('balance_sheet', None)
     df_cash_flow_statement = df_statements.get('cash_flow_statement', None)
@@ -410,6 +410,7 @@ def _read_df_datas(stock_id):
     df_performance = df_statements.get('performance', None)
     print('df_cash_flow_statement = ', df_cash_flow_statement)
     print('df_dividend_policy = ', df_dividend_policy)
+    print('df_balance_sheet = ', df_balance_sheet)
 
     if df_profit_statement is not None:
         df_profit_statement = df_profit_statement.set_index([df_profit_statement.index.to_period("Q")])
@@ -418,9 +419,8 @@ def _read_df_datas(stock_id):
 
     if df_balance_sheet is not None:
         df_balance_sheet = df_balance_sheet.set_index([df_balance_sheet.index.to_period("Q")])
-        df_balance_sheet.columns = ['每股淨值', ('權益總額', '期初餘額'), ('權益總額', '期末餘額')]
+        df_balance_sheet.columns = ['固定資產', '每股淨值', '長期投資', ('權益總額', '期初餘額'), ('權益總額', '期末餘額')]
         df_statements['balance_sheet'] = df_balance_sheet
-        print('df_balance_sheet = ', df_balance_sheet)
         print('df_balance_sheet columns = ', df_balance_sheet.columns)
 
     if df_cash_flow_statement is not None:
