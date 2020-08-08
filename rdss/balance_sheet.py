@@ -1,3 +1,5 @@
+from functools import reduce
+
 import pandas as pd
 import traceback
 
@@ -85,7 +87,8 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
     def parse_from_raw_data(self, raw_input):
         table = self.get_balance_sheet_table(raw_input)
         dict_datas = {}
-        fields_long_term_investment = ['採用權益法之投資', '採用權益法之投資淨額', '透過損益按公允價值衡量之金融資產－非流動']
+        fields_long_term_investment = ['採用權益法之投資', '採用權益法之投資淨額', '透過損益按公允價值衡量之金融資產－非流動', '持有至到期日金融資產－非流動淨額',
+                                       '以成本衡量之金融資產－非流動淨額']
         fields_property = ['不動產、廠房及設備', '不動產、廠房及設備淨額', '不動產及設備合計']
         try:
             rows = table.find_all('tr')
@@ -93,10 +96,11 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
             record_long_term_investment = list(
                 filter(lambda tr: len(tr) > 0 and tr[0] in fields_long_term_investment, trs))
             record_property = list(filter(lambda tr: len(tr) > 0 and tr[0] in fields_property, trs))
-            if len(record_long_term_investment) > 0:
-                dict_datas['長期投資'] = int(record_long_term_investment[0][1].replace(",", ''))
-            if len(record_property) > 0:
-                dict_datas['固定資產'] = int(record_property[0][1].replace(",", ''))
+            print('record_long_term_investment = ', record_long_term_investment)
+            dict_datas['長期投資'] = reduce(lambda result, element: result + element,
+                                        [int(values[1].replace(",", '')) for values in record_long_term_investment],
+                                        0) if len(record_long_term_investment) > 0 else 0
+            dict_datas['固定資產'] = int(record_property[0][1].replace(",", '')) if len(record_property) > 0 else 0
             return dict_datas
         except Exception as inst:
             print("get exception", inst)
@@ -121,9 +125,9 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
     def parse_balance_sheet(self, beautiful_soup, year, season):
         str_period = "{}Q{}".format(year, season)
         dict_datas = {}
-        fields_long_term_investment = ['採用權益法之投資', '採用權益法之投資淨額', '透過損益按公允價值衡量之金融資產－非流動']
-        fields_property = ['不動產、廠房及設備', '不動產、廠房及設備淨額', '不動產及設備合計']
-        fields = fields_long_term_investment + fields_property
+        fields_long_term_investment = ['採用權益法之投資', '採用權益法之投資淨額', '透過損益按公允價值衡量之金融資產－非流動', '持有至到期日金融資產－非流動淨額']
+        fields_assets = ['不動產、廠房及設備', '不動產、廠房及設備淨額', '不動產及設備合計']
+        fields = fields_long_term_investment + fields_assets
         try:
             tables = beautiful_soup.find_all('table', attrs={"class": "hasBorder", "align": "center"})
             table = tables[0]
@@ -132,7 +136,7 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
             trs = [[x.get_text().strip() for x in row.find_all('td')] for row in rows]
             record_long_term_investment = list(
                 filter(lambda tr: len(tr) > 0 and tr[0] in fields_long_term_investment, trs))
-            record_property = list(filter(lambda tr: len(tr) > 0 and tr[0] in fields_property, trs))
+            record_property = list(filter(lambda tr: len(tr) > 0 and tr[0] in fields_assets, trs))
             print('record_long_term_investment = ', record_long_term_investment)
             # filtered_trs = filter(lambda tr: len(tr) > 0, trs)
             # for row in rows:
