@@ -1,3 +1,4 @@
+import enum
 import math
 import sys
 import time
@@ -19,14 +20,22 @@ from utils import get_time_lines
 from value_measurement import PriceMeasurementProcessor, IndexType
 
 
-def sync_statements(stock_codes, times_to_retry=10, break_after_retry=True):
+class Option(enum.IntEnum):
+    BALANCE_SHEET = 1
+    PROFIT_STATEMENT = 1 << 2
+    CASH_FLOW_STATEMENT = 1 << 3
+    DIVIDEND_POLICY = 1 << 4
+    ALL = BALANCE_SHEET | PROFIT_STATEMENT | CASH_FLOW_STATEMENT | DIVIDEND_POLICY
+
+
+def sync_statements(stock_codes, times_to_retry=10, break_after_retry=True, option=Option.ALL, isSync=True):
     print('stock_codes = ', stock_codes)
     retry = 0
     for stock_code in stock_codes:
         get_data = False
         while get_data is False:
             try:
-                _sync_statements(stock_code)
+                _sync_statements(stock_id=stock_code, option=option, isSync=isSync)
                 get_data = True
                 retry = 0
             except Exception as e:
@@ -211,6 +220,8 @@ def _sync_performance(stock_id):
     # results_data = []
     # results_index = []
     dfs_result = []
+    profits = {}
+    fix_assets = {}
     for year in range(start_year, df_dividend_policy.index.values[-1].year + 1):
         df_profit_subset = df_profit_statement.loc["{}Q{}".format(year - 1, 1):"{}Q{}".format(year, 4)]
         df_balance_subset = df_balance_sheet.loc["{}Q{}".format(year - 1, 1): "{}Q{}".format(year, 4)]
@@ -223,6 +234,7 @@ def _sync_performance(stock_id):
         first_q = '{}Q{}'.format(year, 1)
         fourth_q = '{}Q{}'.format(year, 4)
         profit = df_profit_statement.loc[first_q: fourth_q, '稅後淨利'].sum()
+        profits[year] = profit
         shareholder_equity = ((df_balance_sheet.loc[first_q, '(權益總額, 期初餘額)'] + df_balance_sheet.loc[
             fourth_q, '(權益總額, 期末餘額)']) / 2)
         roe = profit / shareholder_equity
@@ -247,6 +259,7 @@ def _sync_performance(stock_id):
     # print('results_index = ', results_index)
     # print('results_data = ', results_data)
     # df_performance = pd.DataFrame(results_data, index=results_index)
+    print('profits = ', profits)
     df_performance = pd.concat(dfs_result, sort=True) if len(dfs_result) > 0 else None
     df_statements['performance'] = df_performance
     store_df(stock_id, df_statements, filename='statments_{0}.xlsx'.format(stock_id))
@@ -272,13 +285,28 @@ def _get_matrix_level(roe, cash_flow_per_share):
     return "D"
 
 
-def _sync_statements(stock_id):
+def _sync_statements(stock_id, option=Option.ALL, isSync=True):
     start_year = 2013
     df_statements = _read_df_datas(stock_id)
-    df_profit_statement = _sync_profit_statement(start_year, stock_id, df_profit_statement=df_statements.get('profit_statement', None))
-    df_balance_sheet = _sync_balance_sheet(start_year, stock_id, df_balance_sheet=df_statements.get('balance_sheet', None))
-    df_cash_flow_statement = _sync_cash_flow_statement(start_year, stock_id, df_cash_flow_statement=df_statements.get('cash_flow_statement', None))
-    df_dividend_policy = _sync_dividend_policy(start_year, stock_id, df_dividend_policy=df_statements.get('dividend_policy', None))
+    df_profit_statement = _sync_profit_statement(start_year, stock_id,
+                                                 df_profit_statement=df_statements.get('profit_statement',
+                                                                                       None) if isSync else None) \
+        if (option & Option.PROFIT_STATEMENT) > 0 else df_statements.get('profit_statement', None)
+
+    df_balance_sheet = _sync_balance_sheet(start_year, stock_id,
+                                           df_balance_sheet=df_statements.get('balance_sheet',
+                                                                              None) if isSync else None) \
+        if (option & Option.BALANCE_SHEET > 0) else df_statements.get('balance_sheet', None)
+
+    df_cash_flow_statement = _sync_cash_flow_statement(start_year, stock_id,
+                                                       df_cash_flow_statement=df_statements.get('cash_flow_statement',
+                                                                                                None) if isSync else None)\
+        if (option & Option.CASH_FLOW_STATEMENT) > 0 else df_statements.get('cash_flow_statement', None)
+
+    df_dividend_policy = _sync_dividend_policy(start_year, stock_id,
+                                               df_dividend_policy=df_statements.get('dividend_policy', None) if isSync else None)\
+        if (option & Option.DIVIDEND_POLICY) > 0 else df_statements.get('dividend_policy', None)
+
     print('df_profit_statement = ', df_profit_statement)
     print('df_balance_sheet = ', df_balance_sheet)
     print('df_cash_flow_statement = ', df_cash_flow_statement)
@@ -398,6 +426,7 @@ def _sync_dividend_policy(start_year, stock_id, df_dividend_policy=None):
     else:
         # TODO:// implement sync dividend
         return df_dividend_policy
+
 
 def _read_df_datas(stock_id):
     df_statements = read_dfs(stock_id, gen_output_path('data', 'statments_{0}.xlsx'.format(str(stock_id))))
