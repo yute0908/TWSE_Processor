@@ -11,6 +11,7 @@ from evaluation_utils import get_stock_list
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
+from rdss.dividend_policy2 import DividendPolicyProcessor2
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.stock_count import StockCountProcessor
@@ -402,13 +403,14 @@ def _sync_profit_statement(start_year, stock_id, df_profit_statement=None):
 
 def _sync_dividend_policy(start_year, stock_id, df_dividend_policy=None):
     # now = datetime.now()
-    dividend_policy_processor = DividendPolicyProcessor(stock_id)
+    dividend_policy_processor = DividendPolicyProcessor2()
     # df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1}, {'year': now.year})
     stock_count_processor = StockCountProcessor()
     price_measurement_processor = PriceMeasurementProcessor(stock_id)
 
     if df_dividend_policy is None:
-        df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1})
+        # df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1})
+        df_dividend_policy = dividend_policy_processor.get_data_frames(stock_id=stock_id, start_year=start_year - 1)
         df_stock_count = stock_count_processor.get_data_frame(stock_id, start_year)
         df_prices = price_measurement_processor.get_data_frame(indexType=IndexType.YEAR_INDEX)
         print("stock_counts = ", df_stock_count)

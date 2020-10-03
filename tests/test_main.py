@@ -16,6 +16,7 @@ from evaluation_utils2 import _sync_statements, _sync_profit_statement, _sync_ba
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
+from rdss.dividend_policy2 import DividendPolicyProcessor2
 from rdss.fetcher import DataFetcher
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
@@ -100,11 +101,7 @@ class MainTest(unittest.TestCase):
             balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
             raw_data = balance_sheet_processor.get_balance_sheet_raw_data(year=2020, season=1)
             if raw_data is not None:
-                file_name = "balance_sheet_data_" + str(stock_id)
-                output_path = gen_output_path('raw_datas/test_balance_sheets', file_name)
-                with open(output_path, 'wb') as output:
-                    output.write(raw_data)
-                    output.close()
+                self.store_raw_data(raw_data, 'raw_datas/test_balance_sheets', "balance_sheet_data_" + str(stock_id))
             else:
                 error_ids.append(stock_id)
         print('error_ids = ', error_ids)
@@ -150,6 +147,32 @@ class MainTest(unittest.TestCase):
         self.assertTrue(data_frame.loc[:, ['現金股利']] is not None)
         self.assertTrue(data_frame.loc[:, ['股息']] is not None)
         print(data_frame)
+
+    def test_sync_dividend_policy(self):
+        _sync_dividend_policy(2013, str(2330))
+        # dividend_policy_processor = DividendPolicyProcessor2()
+        # df_dividend_policy = dividend_policy_processor.get_data_frames(stock_id=str(2330), start_year=2012)
+
+    def test_get_dividend_policy2_raw_data(self):
+        dividend_policy_processor = DividendPolicyProcessor2()
+        stock_list = get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃')
+        for stock_id in stock_list:
+            raw_data = dividend_policy_processor._get_raw_data(stock_id, 2013, 2020)
+            assert(raw_data is not None)
+            self.store_raw_data(raw_data, 'raw_datas/dividend_policies', "dividend_policy_" + str(stock_id))
+
+    def test_parse_dividend_policy2_raw_data(self):
+        raw_data = self.get_raw_data('raw_datas/dividend_policies', "dividend_policy_" + str(2330))
+        dividend_policy_processor = DividendPolicyProcessor2()
+        dividend_policy_processor._parse_raw_data(str(2330), raw_data)
+
+    def test_pandas(self):
+        dates = [pd.Timestamp('2012-05-01'), pd.Timestamp('2012-05-02'), pd.Timestamp('2012-05-03')]
+        periods = [pd.Period('2012Q1'), pd.Period('2012Q2'), pd.Period('2012Q3')]
+        print(periods[2].start_time)
+        ts = pd.Series(pd.np.random.randn(3), periods)
+        print(ts)
+        print(ts.index)
 
     def test_price_measurement(self):
         price_measurement_processor = PriceMeasurementProcessor(2330)
@@ -387,3 +410,17 @@ class MainTest(unittest.TestCase):
         from evaluation_utils2 import _sync_statements
         statement = _sync_statements(2330)
         # print(statement)
+
+    def store_raw_data(self, data, output_dir, file_name):
+        if data is not None:
+            output_path = gen_output_path(output_dir, file_name)
+            with open(output_path, 'wb') as output:
+                output.write(data)
+                output.close()
+
+    def get_raw_data(self, input_dir, file_name):
+        input_path = gen_output_path(input_dir, file_name)
+        with open(input_path, 'rb') as in_put:
+            raw_input = in_put.read()
+            in_put.close()
+            return raw_input
