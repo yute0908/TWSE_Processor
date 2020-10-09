@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 
 import pandas as pd
 import requests
@@ -162,9 +163,15 @@ class MainTest(unittest.TestCase):
             self.store_raw_data(raw_data, 'raw_datas/dividend_policies', "dividend_policy_" + str(stock_id))
 
     def test_parse_dividend_policy2_raw_data(self):
-        raw_data = self.get_raw_data('raw_datas/dividend_policies', "dividend_policy_" + str(2330))
-        dividend_policy_processor = DividendPolicyProcessor2()
-        dividend_policy_processor._parse_raw_data(str(2330), raw_data)
+        # raw_data = self.get_raw_data('raw_datas/dividend_policies', "dividend_policy_" + str(3226))
+        # dividend_policy_processor = DividendPolicyProcessor2()
+        # dividend_policy_processor._parse_raw_data(str(3226), raw_data)
+        stock_list = (get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃'))
+        for stock_id in stock_list:
+            print('parse ', stock_id)
+            raw_data = self.get_raw_data('raw_datas/dividend_policies', "dividend_policy_" + str(stock_id))
+            dividend_policy_processor = DividendPolicyProcessor2()
+            dividend_policy_processor._parse_raw_data(str(stock_id), raw_data)
 
     def test_pandas(self):
         dates = [pd.Timestamp('2012-05-01'), pd.Timestamp('2012-05-02'), pd.Timestamp('2012-05-03')]
@@ -337,13 +344,12 @@ class MainTest(unittest.TestCase):
                    912000,
                    912398, 9136, 9157, 9188, 911613]
         stock_code_list = list(filter(lambda stock_code: stock_code not in dr_list, stock_code_list))
-        stock_code_list = [3556]
         print('stock_code = ', stock_code_list)
         # print('index of 1566 = ', stock_code_list.index(1566))  # 1566, 1787
         # print('sub_list = ', stock_code_list[250:])
         # sync_statements(get_stock_codes(stock_type='上市'))
         # sync_statements(get_stock_codes(stock_type='上櫃'))
-        sync_statements(stock_code_list, times_to_retry=2, break_after_retry= False, option=Option.BALANCE_SHEET, isSync=False)
+        sync_statements(stock_code_list, times_to_retry=2, break_after_retry= False, option=Option.DIVIDEND_POLICY, isSync=False)
         # _sync_statements(stock_id=3556, option=Option.BALANCE_SHEET, isSync=False)
         # print((Option.BALANCE_SHEET & Option.DIVIDEND_POLICY) > 0)
 
