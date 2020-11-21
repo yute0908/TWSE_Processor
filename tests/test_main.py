@@ -18,6 +18,7 @@ from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.dividend_policy2 import DividendPolicyProcessor2
+from rdss.fetch_data_utils import get_simple_balance_sheet_raw_data
 from rdss.fetcher import DataFetcher
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
@@ -416,6 +417,9 @@ class MainTest(unittest.TestCase):
         from evaluation_utils2 import _sync_statements
         statement = _sync_statements(2330)
         # print(statement)
+
+    def test_fetch_data_utils(self):
+        get_simple_balance_sheet_raw_data(2330, 2020, 1)
 
     def store_raw_data(self, data, output_dir, file_name):
         if data is not None:
