@@ -13,7 +13,7 @@ def get_simple_balance_sheet_raw_data(stock_id, year, season):
     get_simple_balance_sheet_raw_datas([stock_id], [{'year': year, 'season': season}])
 
 
-def get_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines()):
+def get_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
     simple_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
     for stock_id in stock_ids:
         for time_line in time_lines:
@@ -24,9 +24,11 @@ def get_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines()):
             path_exists = path.exists(file_path)
             if path_exists is False:
                 result = simple_data_fetcher.fetch(
-                    {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id", "inpuType": "co_id",
+                    {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id",
+                     "inpuType": "co_id",
                      "TYPEK": "all", "isnew": "false", "co_id": stock_id, "year": year - 1911, "season": season})
-                has_result = not (any(element.get_text() == "查詢無資料" for element in BeautifulSoup(result.content, 'html.parser').find_all('font')))
+                has_result = not (any(element.get_text() == "查詢無資料" for element in
+                                      BeautifulSoup(result.content, 'html.parser').find_all('font')))
                 if has_result:
                     store_raw_data(result.content, dir_path, str(stock_id))
 

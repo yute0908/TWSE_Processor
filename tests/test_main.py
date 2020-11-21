@@ -18,7 +18,7 @@ from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.dividend_policy2 import DividendPolicyProcessor2
-from rdss.fetch_data_utils import get_simple_balance_sheet_raw_data
+from rdss.fetch_data_utils import get_simple_balance_sheet_raw_data, get_simple_balance_sheet_raw_datas
 from rdss.fetcher import DataFetcher
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
@@ -26,7 +26,7 @@ from rdss.stock_count import StockCountProcessor
 from stock_data import read, read_dfs, store_df
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
-from utils import get_recent_seasons
+from utils import get_recent_seasons, get_time_lines
 from value_measurement import PriceMeasurementProcessor, IndexType
 
 
@@ -419,7 +419,10 @@ class MainTest(unittest.TestCase):
         # print(statement)
 
     def test_fetch_data_utils(self):
-        get_simple_balance_sheet_raw_data(2330, 2020, 1)
+        # get_simple_balance_sheet_raw_datas([2330], time_lines=get_time_lines(since={'year': 2020}))
+        stock_code_list = get_stock_codes(stock_type='上市')
+        stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
+        get_simple_balance_sheet_raw_datas(stock_code_list)
 
     def store_raw_data(self, data, output_dir, file_name):
         if data is not None:
