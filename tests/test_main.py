@@ -18,7 +18,8 @@ from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.dividend_policy2 import DividendPolicyProcessor2
-from rdss.fetch_data_utils import get_simple_balance_sheet_raw_data, get_simple_balance_sheet_raw_datas
+from rdss.fetch_data_utils import get_simple_balance_sheet_raw_data, get_simple_balance_sheet_raw_datas, \
+    get_balance_sheet_raw_data, get_balance_sheet_raw_datas, get_shareholder_equity_raw_data
 from rdss.fetcher import DataFetcher
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
@@ -103,7 +104,8 @@ class MainTest(unittest.TestCase):
             balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
             raw_data = balance_sheet_processor.get_balance_sheet_raw_data(year=2020, season=1)
             if raw_data is not None:
-                self.store_raw_data(raw_data, 'raw_datas/test_balance_sheets', "balance_sheet_data_" + str(stock_id))
+                # self.store_raw_data(raw_data, 'raw_datas/test_balance_sheets', "balance_sheet_data_" + str(stock_id))
+                pass
             else:
                 error_ids.append(stock_id)
         print('error_ids = ', error_ids)
@@ -420,9 +422,12 @@ class MainTest(unittest.TestCase):
 
     def test_fetch_data_utils(self):
         # get_simple_balance_sheet_raw_datas([2330], time_lines=get_time_lines(since={'year': 2020}))
-        stock_code_list = get_stock_codes(stock_type='上市')
-        stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
-        get_simple_balance_sheet_raw_datas(stock_code_list)
+        # stock_code_list = get_stock_codes(stock_type='上市')
+        # stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
+        get_simple_balance_sheet_raw_data(2330, 2020, 3)
+        # get_balance_sheet_raw_datas(stock_code_list)
+        # get_shareholder_equity_raw_data(2330, 2020, 4)
+
 
     def store_raw_data(self, data, output_dir, file_name):
         if data is not None:

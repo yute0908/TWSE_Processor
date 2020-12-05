@@ -6,7 +6,64 @@ from rdss.fetcher import DataFetcher
 from twse_crawler import gen_output_path
 from utils import get_time_lines
 
-PATH_DIR_RAW_DATA_BALANCE_SHEETS = "raw_datas/balance_sheets/"
+PATH_DIR_RAW_DATA_BALANCE_SHEETS = "out/raw_datas/balance_sheets/"
+PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS = "out/raw_datas/full_balance_sheets/"
+PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY = "out/Vraw_datas/shareholder_equity/"
+
+__balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb03')
+__simple_balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
+__shareholder_equity_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb06')
+
+
+def get_shareholder_equity_raw_data(stock_id, year, season):
+    get_shareholder_equity_raw_datas([stock_id], [{'year': year, 'season': season}])
+
+
+def get_shareholder_equity_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
+    def action(stock_id, year, season):
+        dir_path = PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY + str(year) + "Q" + str(season)
+        file_path = gen_output_path(dir_path, str(stock_id))
+        path_exists = path.exists(file_path)
+        if path_exists is False:
+            result = __shareholder_equity_fetcher.fetch(
+                {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
+                 'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id, 'year': year - 1911,
+                 'season': season})
+            has_result = not (any(element.get_text() == "查無資料！" for element in
+                                  BeautifulSoup(result.content, 'html.parser').find_all('font')))
+            print('has_result: ', has_result)
+            if has_result:
+                store_raw_data(result.content, dir_path, str(stock_id))
+
+    __iterate_all(stock_ids, time_lines, action)
+
+
+def get_balance_sheet_raw_data(stock_id, year, season):
+    get_balance_sheet_raw_datas([stock_id], [{'year': year, 'season': season}])
+
+
+def get_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
+    def action(stock_id, year, season):
+        dir_path = PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS + str(year) + "Q" + str(season)
+        file_path = gen_output_path(dir_path, str(stock_id))
+        path_exists = path.exists(file_path)
+        if path_exists is False:
+            result = __balance_sheet_data_fetcher.fetch(
+                {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id",
+                 "inpuType": "co_id",
+                 "TYPEK": "all", "isnew": "false", "co_id": stock_id, "year": year - 1911, "season": season})
+            content = BeautifulSoup(result.content, 'html.parser').find_all('input')
+            need_to_get_next = any(field['type'] == 'button' for field in content)
+            if need_to_get_next:
+                result = __balance_sheet_data_fetcher.fetch(
+                    {"encodeURIComponent": 1, "step": 2, "firstin": 1, "TYPEK": "sii", "co_id": stock_id,
+                     "year": year - 1911, "season": season})
+            has_result = not (any(element.get_text() == "查無所需資料！" for element in
+                                  BeautifulSoup(result.content, 'html.parser').find_all('font')))
+            if has_result:
+                store_raw_data(result.content, dir_path, str(stock_id))
+
+    __iterate_all(stock_ids, time_lines, action)
 
 
 def get_simple_balance_sheet_raw_data(stock_id, year, season):
@@ -14,23 +71,34 @@ def get_simple_balance_sheet_raw_data(stock_id, year, season):
 
 
 def get_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
-    simple_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
+    def fetcher(stock_id, year, season):
+        result = __simple_balance_sheet_data_fetcher.fetch(
+            {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id",
+             "inpuType": "co_id",
+             "TYPEK": "all", "isnew": "false", "co_id": stock_id, "year": year - 1911, "season": season})
+        has_result = not (any(element.get_text() == "查詢無資料" for element in
+                              BeautifulSoup(result.content, 'html.parser').find_all('font')))
+        return result.content if has_result else None
+    __get_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_BALANCE_SHEETS, fetcher)
+
+
+def __get_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):
+    def action(stock_id, year, season):
+        dir_path = root_dir_path + str(year) + "Q" + str(season)
+        file_path = gen_output_path(dir_path, str(stock_id))
+        if path.exists(file_path) is False:
+            result = fetcher(stock_id, year, season)
+            if result is not None:
+                store_raw_data(result, dir_path, str(stock_id))
+
+    __iterate_all(stock_ids, time_lines, action)
+
+
+
+def __iterate_all(stock_ids, time_lines, action):
     for stock_id in stock_ids:
         for time_line in time_lines:
-            year = time_line['year']
-            season = time_line['season']
-            dir_path = PATH_DIR_RAW_DATA_BALANCE_SHEETS + str(year) + "Q" + str(season)
-            file_path = gen_output_path(dir_path, str(stock_id))
-            path_exists = path.exists(file_path)
-            if path_exists is False:
-                result = simple_data_fetcher.fetch(
-                    {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id",
-                     "inpuType": "co_id",
-                     "TYPEK": "all", "isnew": "false", "co_id": stock_id, "year": year - 1911, "season": season})
-                has_result = not (any(element.get_text() == "查詢無資料" for element in
-                                      BeautifulSoup(result.content, 'html.parser').find_all('font')))
-                if has_result:
-                    store_raw_data(result.content, dir_path, str(stock_id))
+            action(stock_id, time_line['year'], time_line['season'])
 
 
 def store_raw_data(data, output_dir, file_name):

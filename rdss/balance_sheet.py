@@ -50,6 +50,7 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
             if balance_sheet_table is not None:
                 return result.content
 
+        print(self._stock_id, ': need to fetch step 2', )
         result = self.__balance_sheet_fetcher.fetch_second_step_2(
             {'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
         if result.ok is False:
