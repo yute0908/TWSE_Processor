@@ -424,9 +424,9 @@ class MainTest(unittest.TestCase):
         # get_simple_balance_sheet_raw_datas([2330], time_lines=get_time_lines(since={'year': 2020}))
         # stock_code_list = get_stock_codes(stock_type='上市')
         # stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
-        get_simple_balance_sheet_raw_data(2330, 2020, 3)
+        # get_simple_balance_sheet_raw_data(2330, 2020, 3)
         # get_balance_sheet_raw_datas(stock_code_list)
-        # get_shareholder_equity_raw_data(2330, 2020, 4)
+        get_shareholder_equity_raw_data(2330, 2020, 4)
 
 
     def store_raw_data(self, data, output_dir, file_name):
