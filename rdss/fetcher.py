@@ -1,3 +1,4 @@
+import logging
 import time
 
 import requests
@@ -10,6 +11,7 @@ class DataFetcher:
     _backoff_window_count = 0
 
     def __init__(self, url):
+        self.logger = logging.getLogger("twse.DataFetcher")
         self.url = url
         self.session = requests.session()
 
@@ -18,17 +20,16 @@ class DataFetcher:
         get_value = False
         while get_value is not True:
             try:
-                print('fetch ', self.url, ' params = ', params)
-                result = self.session.post(self.url, params, headers={'Connection':'close'}, timeout=60)
+                self.logger.debug('fetch ' + self.url + ' params = ' + str(params))
+                result = self.session.post(self.url, params, headers={'Connection': 'close'}, timeout=60)
                 get_value = True
-                print('fetch success')
+                self.logger.debug('fetch success')
             except (requests.exceptions.ConnectionError, ConnectionRefusedError, NewConnectionError, MaxRetryError,
                     ProtocolError) as ce:
-                print('get connection error ce ', ce)
+                self.logger.error('get connection error ce ' + str(ce))
                 self.wait_for_server()
             except (ChunkedEncodingError, ProtocolError) as ce2:
-                print('get connection error 2 ce ', ce2)
-
+                self.logger.error('get connection error 2 ce ' + str(ce2))
                 self.wait_for_server()
 
         return result
@@ -41,4 +42,3 @@ class DataFetcher:
         #     sleep_time = 5 * (DataFetcher._backoff_window_count % 6 + 1)
         #     DataFetcher._backoff_window_count += 1
         #     time.sleep(sleep_time)
-
