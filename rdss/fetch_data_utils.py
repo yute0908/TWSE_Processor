@@ -1,3 +1,4 @@
+from datetime import datetime
 from os import path
 
 from bs4 import BeautifulSoup
@@ -8,11 +9,26 @@ from utils import get_time_lines
 
 PATH_DIR_RAW_DATA_BALANCE_SHEETS = "out/raw_datas/balance_sheets/"
 PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS = "out/raw_datas/full_balance_sheets/"
-PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY = "out/Vraw_datas/shareholder_equity/"
+PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY = "out/raw_datas/shareholder_equity/"
+PATH_DIR_RAW_DATA_DIVIDEND_POLICY = "out/raw_datas/dividend_policy"
 
 __balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb03')
 __simple_balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
 __shareholder_equity_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb06')
+__dividend_policy_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t05st09_2')
+
+
+def get_dividend_policy_raw_data(stock_id, since_year, to_year):
+    get_dividend_policy_raw_datas([stock_id], since_year, to_year)
+
+
+def get_dividend_policy_raw_datas(stock_ids, since_year=datetime.now().year, to_year=datetime.now().year):
+    stock_id = stock_ids[0]
+    result = __dividend_policy_fetcher.fetch({'encodeURIComponent': 1, 'step': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
+             'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id, 'date1': (since_year - 1911),
+             'date2': (to_year - 1911), 'qryType': 2, 'firstin': 1})
+    store_raw_data(result.content, PATH_DIR_RAW_DATA_DIVIDEND_POLICY, str(stock_id))
+
 
 def get_shareholder_equity_raw_data(stock_id, year, season):
     get_shareholder_equity_raw_datas([stock_id], [{'year': year, 'season': season}])
