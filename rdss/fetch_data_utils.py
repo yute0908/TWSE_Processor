@@ -23,11 +23,12 @@ def get_dividend_policy_raw_data(stock_id, since_year, to_year):
 
 
 def get_dividend_policy_raw_datas(stock_ids, since_year=datetime.now().year, to_year=datetime.now().year):
-    stock_id = stock_ids[0]
-    result = __dividend_policy_fetcher.fetch({'encodeURIComponent': 1, 'step': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
+    for stock_id in stock_ids:
+        result = __dividend_policy_fetcher.fetch(
+            {'encodeURIComponent': 1, 'step': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
              'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id, 'date1': (since_year - 1911),
              'date2': (to_year - 1911), 'qryType': 2, 'firstin': 1})
-    store_raw_data(result.content, PATH_DIR_RAW_DATA_DIVIDEND_POLICY, str(stock_id))
+        store_raw_data(result.content, PATH_DIR_RAW_DATA_DIVIDEND_POLICY, str(stock_id))
 
 
 def get_shareholder_equity_raw_data(stock_id, year, season):
