@@ -17,12 +17,11 @@ __simple_balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops
 __shareholder_equity_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb06')
 __dividend_policy_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t05st09_2')
 
+def fetch_dividend_policy_raw_data(stock_id, since_year, to_year):
+    fetch_dividend_policy_raw_datas([stock_id], since_year, to_year)
 
-def get_dividend_policy_raw_data(stock_id, since_year, to_year):
-    get_dividend_policy_raw_datas([stock_id], since_year, to_year)
 
-
-def get_dividend_policy_raw_datas(stock_ids, since_year=datetime.now().year, to_year=datetime.now().year):
+def fetch_dividend_policy_raw_datas(stock_ids, since_year=datetime.now().year, to_year=datetime.now().year):
     for stock_id in stock_ids:
         result = __dividend_policy_fetcher.fetch(
             {'encodeURIComponent': 1, 'step': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
@@ -31,11 +30,11 @@ def get_dividend_policy_raw_datas(stock_ids, since_year=datetime.now().year, to_
         store_raw_data(result.content, PATH_DIR_RAW_DATA_DIVIDEND_POLICY, str(stock_id))
 
 
-def get_shareholder_equity_raw_data(stock_id, year, season):
-    get_shareholder_equity_raw_datas([stock_id], [{'year': year, 'season': season}])
+def fetch_shareholder_equity_raw_data(stock_id, year, season):
+    fetch_shareholder_equity_raw_datas([stock_id], [{'year': year, 'season': season}])
 
 
-def get_shareholder_equity_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
+def fetch_shareholder_equity_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
     def fetcher(stock_id, year, season):
         result = __shareholder_equity_fetcher.fetch(
             {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
@@ -46,14 +45,14 @@ def get_shareholder_equity_raw_datas(stock_ids, time_lines=get_time_lines(since=
 
         return result.content if has_result else None
 
-    __get_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY, fetcher)
+    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY, fetcher)
 
 
-def get_balance_sheet_raw_data(stock_id, year, season):
-    get_balance_sheet_raw_datas([stock_id], [{'year': year, 'season': season}])
+def fetch_balance_sheet_raw_data(stock_id, year, season):
+    fetch_balance_sheet_raw_datas([stock_id], [{'year': year, 'season': season}])
 
 
-def get_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
+def fetch_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
     def fetcher(stock_id, year, season):
         result = __balance_sheet_data_fetcher.fetch(
             {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id",
@@ -69,14 +68,14 @@ def get_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'yea
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
 
-    __get_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS, fetcher)
+    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS, fetcher)
 
 
-def get_simple_balance_sheet_raw_data(stock_id, year, season):
-    get_simple_balance_sheet_raw_datas([stock_id], [{'year': year, 'season': season}])
+def fetch_simple_balance_sheet_raw_data(stock_id, year, season):
+    fetch_simple_balance_sheet_raw_datas([stock_id], [{'year': year, 'season': season}])
 
 
-def get_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
+def fetch_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
     def fetcher(stock_id, year, season):
         result = __simple_balance_sheet_data_fetcher.fetch(
             {"encodeURIComponent": 1, "step": 1, "firstin": 1, "off": 1, "queryName": "co_id",
@@ -85,10 +84,10 @@ def get_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(sinc
         has_result = not (any(element.get_text() == "查詢無資料" for element in
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
-    __get_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_BALANCE_SHEETS, fetcher)
+    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_BALANCE_SHEETS, fetcher)
 
 
-def __get_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):
+def __fetch_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):
     def action(stock_id, year, season):
         dir_path = root_dir_path + str(year) + "Q" + str(season)
         file_path = gen_output_path(dir_path, str(stock_id))

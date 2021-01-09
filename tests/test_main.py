@@ -18,8 +18,8 @@ from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.dividend_policy2 import DividendPolicyProcessor2
-from rdss.fetch_data_utils import get_simple_balance_sheet_raw_data, get_simple_balance_sheet_raw_datas, \
-    get_balance_sheet_raw_data, get_balance_sheet_raw_datas, get_shareholder_equity_raw_data
+from rdss.fetch_data_utils import fetch_simple_balance_sheet_raw_data, fetch_simple_balance_sheet_raw_datas, \
+    fetch_balance_sheet_raw_data, fetch_balance_sheet_raw_datas, fetch_shareholder_equity_raw_data
 from rdss.fetcher import DataFetcher
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
@@ -426,7 +426,7 @@ class MainTest(unittest.TestCase):
         # stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
         # get_simple_balance_sheet_raw_data(2330, 2020, 3)
         # get_balance_sheet_raw_datas(stock_code_list)
-        get_shareholder_equity_raw_data(2330, 2020, 4)
+        fetch_shareholder_equity_raw_data(2330, 2020, 4)
 
 
     def store_raw_data(self, data, output_dir, file_name):
