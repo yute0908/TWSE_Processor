@@ -17,6 +17,6 @@ if __name__ == "__main__":
     logger.info('start')
     stock_code_list = get_stock_codes(stock_type='上市')
     stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
-    # get_simple_balance_sheet_raw_datas(stock_code_list[0: 10])
+    # fetch_simple_balance_sheet_raw_datas(stock_code_list[0: 4])
     # fetch_dividend_policy_raw_datas(stock_code_list, 2013)
-    fetch_stock_count_raw_datas(stock_code_list[0:2], since_year=2013)
+    fetch_stock_count_raw_datas(stock_code_list[0:5], since_year=2013)

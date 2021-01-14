@@ -26,19 +26,17 @@ def fetch_stock_count_raw_data(stock_id, since_year, to_year):
 
 def fetch_stock_count_raw_datas(stock_ids, since_year=datetime.now().year, to_year=datetime.now().year):
     time_lines = get_time_lines(since={'year': since_year}, to={'year': to_year}, offset=Offset.YEAR)
-    for stock_id in stock_ids:
-        for time_line_item in time_lines:
-            year = time_line_item['year']
-            result = __stock_count_fetcher.fetch(
-                {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id',
-                 't05st29_c_ifrs': 'N',
-                 't05st30_c_ifrs': 'N', 'inpuType': 'co_id', 'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id,
-                 'year': (year - 1911)}
-            )
-            dir_path = PATH_DIR_RAW_DATA_STOCK_COUNT + str(year)
-            store_raw_data(result.content, dir_path, str(stock_id))
 
+    def fetcher(stock_id, year):
+        result = __stock_count_fetcher.fetch(
+            {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id',
+             't05st29_c_ifrs': 'N',
+             't05st30_c_ifrs': 'N', 'inpuType': 'co_id', 'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id,
+             'year': (year - 1911)}
+        )
+        return result.content
 
+    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_STOCK_COUNT, fetcher)
 
 def fetch_dividend_policy_raw_data(stock_id, since_year, to_year):
     fetch_dividend_policy_raw_datas([stock_id], since_year, to_year)
@@ -113,11 +111,11 @@ def fetch_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(si
 def __fetch_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):
     def action(stock_id, time_line):
         year = time_line['year']
-        season = time_line['season']
-        dir_path = root_dir_path + str(year) + "Q" + str(season)
+        season = time_line.get('season')
+        dir_path = (root_dir_path + str(year)) if season is None else (root_dir_path + str(year) + "Q" + str(season))
         file_path = gen_output_path(dir_path, str(stock_id))
         if path.exists(file_path) is False:
-            result = fetcher(stock_id, year, season)
+            result = fetcher(stock_id, year) if season is None else fetcher(stock_id, year, season)
             if result is not None:
                 store_raw_data(result, dir_path, str(stock_id))
 
