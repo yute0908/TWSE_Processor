@@ -1,7 +1,13 @@
 from datetime import datetime
+from enum import Enum
 
 
-def get_time_lines(since=None, to=None):
+class Offset(Enum):
+    SEASON = 'Q'
+    YEAR = 'Y'
+
+
+def get_time_lines(since=None, to=None, offset=Offset.SEASON):
     if since is None and to is None:
         print("since and to should not both be None")
         return
@@ -32,13 +38,16 @@ def get_time_lines(since=None, to=None):
     year_count = to_year - since_year - 1
     season_count = 4 - since_season + to_season + year_count * 4 + 1
     time_lines = []
-    print("get seasons")
-    for i in range(int(season_count)):
-        mod_season = (since_season + i) % 4
-        year = since_year + int((since_season + i) / 4) - (1 if mod_season == 0 else 0)
-        season = mod_season if mod_season > 0 else 4
-        print("(", year, ",", season, ")")
-        time_lines.append({'year': year, 'season': season})
+    if offset == Offset.SEASON:
+        for i in range(int(season_count)):
+            mod_season = (since_season + i) % 4
+            year = since_year + int((since_season + i) / 4) - (1 if mod_season == 0 else 0)
+            season = mod_season if mod_season > 0 else 4
+            print("(", year, ",", season, ")")
+            time_lines.append({'year': year, 'season': season})
+    else:
+        for year in range(since_year, to_year + 1):
+            time_lines.append({'year': year})
     print("\n")
     return time_lines
 

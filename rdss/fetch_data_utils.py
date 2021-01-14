@@ -5,17 +5,40 @@ from bs4 import BeautifulSoup
 
 from rdss.fetcher import DataFetcher
 from twse_crawler import gen_output_path
-from utils import get_time_lines
+from utils import get_time_lines, Offset
 
 PATH_DIR_RAW_DATA_BALANCE_SHEETS = "out/raw_datas/balance_sheets/"
 PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS = "out/raw_datas/full_balance_sheets/"
 PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY = "out/raw_datas/shareholder_equity/"
 PATH_DIR_RAW_DATA_DIVIDEND_POLICY = "out/raw_datas/dividend_policy"
+PATH_DIR_RAW_DATA_STOCK_COUNT = "out/raw_datas/stock_count/"
 
 __balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb03')
 __simple_balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
 __shareholder_equity_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb06')
 __dividend_policy_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t05st09_2')
+__stock_count_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t16sn02')
+
+
+def fetch_stock_count_raw_data(stock_id, since_year, to_year):
+    fetch_balance_sheet_raw_datas([stock_id], since_year, to_year)
+
+
+def fetch_stock_count_raw_datas(stock_ids, since_year=datetime.now().year, to_year=datetime.now().year):
+    time_lines = get_time_lines(since={'year': since_year}, to={'year': to_year}, offset=Offset.YEAR)
+    for stock_id in stock_ids:
+        for time_line_item in time_lines:
+            year = time_line_item['year']
+            result = __stock_count_fetcher.fetch(
+                {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id',
+                 't05st29_c_ifrs': 'N',
+                 't05st30_c_ifrs': 'N', 'inpuType': 'co_id', 'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id,
+                 'year': (year - 1911)}
+            )
+            dir_path = PATH_DIR_RAW_DATA_STOCK_COUNT + str(year)
+            store_raw_data(result.content, dir_path, str(stock_id))
+
+
 
 def fetch_dividend_policy_raw_data(stock_id, since_year, to_year):
     fetch_dividend_policy_raw_datas([stock_id], since_year, to_year)
@@ -88,7 +111,9 @@ def fetch_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(si
 
 
 def __fetch_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):
-    def action(stock_id, year, season):
+    def action(stock_id, time_line):
+        year = time_line['year']
+        season = time_line['season']
         dir_path = root_dir_path + str(year) + "Q" + str(season)
         file_path = gen_output_path(dir_path, str(stock_id))
         if path.exists(file_path) is False:
@@ -102,8 +127,8 @@ def __fetch_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):
 
 def __iterate_all(stock_ids, time_lines, action):
     for stock_id in stock_ids:
-        for time_line in time_lines:
-            action(stock_id, time_line['year'], time_line['season'])
+        for time_line_item in time_lines:
+            action(stock_id, time_line_item)
 
 
 def store_raw_data(data, output_dir, file_name):
