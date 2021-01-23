@@ -61,9 +61,15 @@ def fetch_shareholder_equity_raw_datas(stock_ids, time_lines=get_time_lines(sinc
             {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
              'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id, 'year': year - 1911,
              'season': season})
-        has_result = not (any(element.get_text() == "查無資料！" for element in
-                              BeautifulSoup(result.content, 'html.parser').find_all('font')))
-
+        parser = BeautifulSoup(result.content, 'html.parser')
+        has_result = not (any(element.get_text() == "查無資料！" for element in parser.find_all('font')))
+        has_button = len(parser.find_all('input')) > 0
+        if has_result and has_button:
+            result = __shareholder_equity_fetcher.fetch(
+                {'encodeURIComponent': 1, 'TYPEK': 'sii', 'step': 2, 'year': year - 1911, 'season': season,
+                 'co_id': stock_id, 'firstin': 1})
+            parser = BeautifulSoup(result.content, 'html.parser')
+            has_result = not (any(element.get_text() == "查無資料！" for element in parser.find_all('font')))
         return result.content if has_result else None
 
     __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY, fetcher)
