@@ -12,12 +12,14 @@ PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS = "out/raw_datas/full_balance_sheets/"
 PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY = "out/raw_datas/shareholder_equity/"
 PATH_DIR_RAW_DATA_DIVIDEND_POLICY = "out/raw_datas/dividend_policy"
 PATH_DIR_RAW_DATA_STOCK_COUNT = "out/raw_datas/stock_count/"
+PATH_DIR_RAW_DATA_CASH_FLOW = "out/raw_datas/cash_flow/"
 
 __balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb03')
 __simple_balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
 __shareholder_equity_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb06')
 __dividend_policy_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t05st09_2')
 __stock_count_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t16sn02')
+__cash_flow_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb05')
 
 
 def fetch_stock_count_raw_data(stock_id, since_year, to_year):
@@ -112,6 +114,29 @@ def fetch_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(si
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
     __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_BALANCE_SHEETS, fetcher)
+
+
+def fetch_cash_flow_raw_data(stock_id, year, season):
+    fetch_cash_flow_raw_datas([stock_id], [{'year': year, 'season': season}])
+
+def fetch_cash_flow_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
+    def fetcher(stock_id, year, season):
+        result = __cash_flow_fetcher.fetch(
+            {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
+             'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id, 'year': year - 1911,
+             'season': season}
+        )
+        inputs_tag = BeautifulSoup(result.content, 'html.parser').find_all('input')
+        need_to_get_next = any(field['type'] == 'button' for field in inputs_tag)
+        if need_to_get_next:
+            result = __cash_flow_fetcher.fetch(
+                {"encodeURIComponent": 1, "step": 2, "firstin": 1, "TYPEK": "sii", "co_id": stock_id,
+                 "year": year - 1911, "season": season}
+            )
+        has_result = not (any(element.get_text() == "查詢無資料" or element.get_text() == '查無所需資料！' for element in
+                              BeautifulSoup(result.content, 'html.parser').find_all('font')))
+        return result.content if has_result else None
+    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_CASH_FLOW, fetcher)
 
 
 def __fetch_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):
