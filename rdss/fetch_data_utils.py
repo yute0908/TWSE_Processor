@@ -42,7 +42,7 @@ def fetch_dividend_policy_raw_data(stock_id, since_year, to_year):
     fetch_dividend_policy_raw_datas([stock_id], since_year, to_year)
 
 
-def fetch_dividend_policy_raw_datas(stock_ids, since_year=datetime.now().year, to_year=datetime.now().year):
+def fetch_dividend_policy_raw_datas(stock_ids, since_year=2013, to_year=datetime.now().year):
     for stock_id in stock_ids:
         result = __dividend_policy_fetcher.fetch(
             {'encodeURIComponent': 1, 'step': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
