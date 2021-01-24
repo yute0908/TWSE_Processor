@@ -1,7 +1,14 @@
+import logging
+import os
+import traceback
 from datetime import datetime
 from os import path
+from shutil import copyfile
+from urllib.parse import urlencode
 
 from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver import FirefoxProfile
 
 from rdss.fetcher import DataFetcher
 from twse_crawler import gen_output_path
@@ -13,6 +20,7 @@ PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY = "out/raw_datas/shareholder_equity/"
 PATH_DIR_RAW_DATA_DIVIDEND_POLICY = "out/raw_datas/dividend_policy"
 PATH_DIR_RAW_DATA_STOCK_COUNT = "out/raw_datas/stock_count/"
 PATH_DIR_RAW_DATA_CASH_FLOW = "out/raw_datas/cash_flow/"
+PATH_DIR_RAW_DATA_PRICE_MEASUREMENT = "out/raw_datas/price_measurement/"
 
 __balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb03')
 __simple_balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
@@ -20,6 +28,8 @@ __shareholder_equity_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/aj
 __dividend_policy_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t05st09_2')
 __stock_count_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t16sn02')
 __cash_flow_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb05')
+
+__logger = logging.getLogger("twse.DataFetcher")
 
 
 def fetch_stock_count_raw_data(stock_id, since_year, to_year):
@@ -39,6 +49,38 @@ def fetch_stock_count_raw_datas(stock_ids, since_year=datetime.now().year, to_ye
         return result.content
 
     __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_STOCK_COUNT, fetcher)
+
+
+def fetch_price_measurement_raw_datas(stock_ids):
+    for stock_id in stock_ids:
+        params = {'STOCK_ID': stock_id}
+        path_dir = os.path.abspath(gen_output_path(PATH_DIR_RAW_DATA_PRICE_MEASUREMENT))
+        url = "https://goodinfo.tw/StockInfo/StockBzPerformance.asp?" + urlencode(params)
+        print('url = ', url)
+        profile = FirefoxProfile()
+        profile.set_preference("browser.download.panel.shown", False)
+        profile.set_preference("browser.download.folderList", 2)
+        profile.set_preference("browser.download.dir", path_dir)
+        profile.set_preference("browser.helperApps.neverAsk.saveToDisk", "text/html")
+        driver = webdriver.Firefox(firefox_profile=profile)
+        driver.get(url)
+        inputs = driver.find_elements_by_tag_name("input")
+        download_button = None
+        for input_ in inputs:
+            if input_.get_attribute("value") == '匯出HTML':
+                download_button = input_
+        download_button.click()
+        driver.quit()
+        file_path = os.path.join(path_dir, "BzPerformance.html")
+        try:
+            output_file_path = gen_output_path(PATH_DIR_RAW_DATA_PRICE_MEASUREMENT, str(stock_id))
+            copyfile(file_path, output_file_path)
+        except Exception as inst:
+            __logger.error("get exception in " + str(stock_id) + ":" + str(inst))
+            traceback.print_tb(inst.__traceback__)
+        finally:
+            os.remove(file_path)
+
 
 def fetch_dividend_policy_raw_data(stock_id, since_year, to_year):
     fetch_dividend_policy_raw_datas([stock_id], since_year, to_year)
