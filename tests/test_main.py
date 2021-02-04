@@ -20,7 +20,7 @@ from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.dividend_policy2 import DividendPolicyProcessor2
 from rdss.fetch_data_utils import fetch_simple_balance_sheet_raw_data, fetch_simple_balance_sheet_raw_datas, \
     fetch_balance_sheet_raw_data, fetch_balance_sheet_raw_datas, fetch_shareholder_equity_raw_data, \
-    fetch_cash_flow_raw_data, fetch_price_measurement_raw_datas
+    fetch_cash_flow_raw_data, fetch_price_measurement_raw_datas, fetch_cash_flow_raw_datas
 from rdss.fetcher import DataFetcher
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
@@ -194,7 +194,7 @@ class MainTest(unittest.TestCase):
         # print(df)
 
     def test_cash_flow_statement(self):
-        cash_flow_processor = CashFlowStatementProcessor(2330)
+        cash_flow_processor = CashFlowStatementProcessor(2809)
         # data_frame = cash_flow_processor.get_data_frame(2017, 2)
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
@@ -428,8 +428,9 @@ class MainTest(unittest.TestCase):
         # get_simple_balance_sheet_raw_data(2330, 2020, 3)
         # get_balance_sheet_raw_datas(stock_code_list)
         # fetch_shareholder_equity_raw_data(2809, 2020, 3)
-        # fetch_cash_flow_raw_data(2809, 2020, 4)
-        fetch_price_measurement_raw_datas([2809])
+        fetch_cash_flow_raw_datas([2809])
+        # fetch_price_measurement_raw_datas([2809])
+
 
     def store_raw_data(self, data, output_dir, file_name):
         if data is not None:

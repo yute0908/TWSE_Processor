@@ -4,8 +4,9 @@ import traceback
 from bs4 import BeautifulSoup
 from idna import unicode
 
+from rdss.fetch_data_utils import PATH_DIR_RAW_DATA_CASH_FLOW, get_raw_data
 from rdss.fetcher import DataFetcher
-from rdss.statement_processor import StatementProcessor
+from rdss.statement_processor import StatementProcessor, Source
 from utils import get_time_lines
 
 
@@ -16,15 +17,14 @@ class CashFlowStatementProcessor(StatementProcessor):
 
     def __init__(self, stock_id):
         super().__init__(stock_id)
-        self._data_fetcher = _CashFlowStatementFetcher()
         self._fetch_fields = ('營業活動之淨現金流入', '取得不動產、廠房及設備', '其他投資活動', '投資活動之淨現金流入')
 
-    def get_data_frames(self, since, to=None):
+    def get_data_frames(self, since, to=None, source_policy=Source.CACHE_ONLY):
         time_lines = get_time_lines(since=since, to=to)
         # time_first = time_lines[0]
         # if time_first.get('season') > 1:
         #     time_lines.insert(0, {'year': time_first.get('year'), 'season': (time_first.get('season') - 1)})
-        print(time_lines)
+        # print(time_lines)
 
         time_lines.reverse()
 
@@ -60,17 +60,19 @@ class CashFlowStatementProcessor(StatementProcessor):
             dfs.append(pd.DataFrame([data_dict.values()], columns=data_dict.keys(), index=period_index))
         return None if len(dfs) == 0 else pd.concat(dfs, sort=False)
 
-    def get_data_frame(self, year, season):
-        return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})
+    def get_data_frame(self, year, season, source_policy=Source.CACHE_ONLY):
+        return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season},
+                                    source_policy=source_policy)
 
     def _get_data_dict(self, fields, year, season):
-        result = self._data_fetcher.fetch(params={'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
-        if result.ok is False:
-            return None
+        # result = self._data_fetcher.fetch(params={'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
+        # if result.ok is False:
+        #     return None
 
         data_dict = {}
         try:
-            bs = BeautifulSoup(result.content, 'html.parser')
+            raw_data = get_raw_data(PATH_DIR_RAW_DATA_CASH_FLOW + str(year) + "Q" + str(season), str(self._stock_id))
+            bs = BeautifulSoup(raw_data, 'html.parser')
             table = bs.find_all('table', attrs={"class": "hasBorder", "align": "center"})
             #print(table[0].prettify())
 
@@ -86,12 +88,6 @@ class CashFlowStatementProcessor(StatementProcessor):
 
         except Exception as inst:
             print("get exception", inst)
-            print("year = ", year, "result=", bs.prettify())
-
-            fonts = bs.find_all('font')
-            for font in fonts:
-                print("font = ", font.string, " ", unicode(font.string))
-
             traceback.print_tb(inst.__traceback__)
             return None
         # print(data_dict)
