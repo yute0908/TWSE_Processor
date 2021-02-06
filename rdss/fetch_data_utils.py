@@ -14,7 +14,7 @@ from rdss.fetcher import DataFetcher
 from twse_crawler import gen_output_path
 from utils import get_time_lines, Offset
 
-PATH_DIR_RAW_DATA_BALANCE_SHEETS = "out/raw_datas/balance_sheets/"
+PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS = "out/raw_datas/balance_sheets/"
 PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS = "out/raw_datas/full_balance_sheets/"
 PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY = "out/raw_datas/shareholder_equity/"
 PATH_DIR_RAW_DATA_DIVIDEND_POLICY = "out/raw_datas/dividend_policy"
@@ -155,7 +155,7 @@ def fetch_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(si
         has_result = not (any(element.get_text() == "查詢無資料" for element in
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
-    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_BALANCE_SHEETS, fetcher)
+    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS, fetcher)
 
 
 def fetch_cash_flow_raw_data(stock_id, year, season):

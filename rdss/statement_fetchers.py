@@ -1,11 +1,11 @@
-import pandas as pd
 import traceback
 
+import pandas as pd
 from bs4 import BeautifulSoup
 
+from rdss.fetch_data_utils import get_raw_data, PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS
 from rdss.parsers import DataFrameParser
-from rdss.simple_statments_fetcher import _SimpleBalanceStatementsFetcher
-from rdss.statement_processor import StatementProcessor
+from rdss.statement_processor import StatementProcessor, Source
 from utils import get_time_lines
 
 
@@ -13,10 +13,8 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
 
     def __init__(self, stock_id):
         super().__init__(stock_id)
-        self.__data_fetcher = _SimpleBalanceStatementsFetcher()
-        self.__data_parser = _IncomeStatementParser()
 
-    def get_data_frames(self, since, to=None):
+    def get_data_frames(self, since, to=None, source_policy=Source.CACHE_ONLY):
         time_lines = get_time_lines(since=since, to=to)
         year = time_lines[0].get('year')
         season = time_lines[0].get('season')
@@ -42,16 +40,18 @@ class SimpleIncomeStatementProcessor(StatementProcessor):
 
         return pd.concat(dfs) if len(dfs) > 0 else None
 
-    def get_data_frame(self, year, season):
-        return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})
+    def get_data_frame(self, year, season, source_policy=Source.CACHE_ONLY):
+        return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season},
+                                    source_policy=source_policy)
 
     def _get_data_dict(self, year, season):
-        result = self.__data_fetcher.fetch({'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
-        if result.ok is False:
-            return None
+        # result = self.__data_fetcher.fetch({'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
+        # if result.ok is False:
+        #     return None
         try:
             dict_datas = {}
-            bs = BeautifulSoup(result.content, 'html.parser')
+            raw_data = get_raw_data(PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS + str(year) + "Q" + str(season), str(self._stock_id))
+            bs = BeautifulSoup(raw_data, 'html.parser')
             tables = bs.find_all('table', attrs={"class": "hasBorder", "align": "center", "width": "70%"})
             table = tables[2]
             rows = table.find_all('tr')

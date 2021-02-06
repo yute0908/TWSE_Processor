@@ -1,13 +1,14 @@
+import traceback
 from functools import reduce
 
 import pandas as pd
-import traceback
-
 from bs4 import BeautifulSoup
 
+from rdss.fetch_data_utils import get_raw_data, PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS, \
+    PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS
 from rdss.parsers import DataFrameParser
 from rdss.simple_statments_fetcher import _SimpleBalanceStatementsFetcher, _BalanceStatementsFetcher
-from rdss.statement_processor import StatementProcessor
+from rdss.statement_processor import StatementProcessor, Source
 
 
 class SimpleBalanceSheetProcessor(StatementProcessor):
@@ -18,7 +19,7 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
         self.__balance_sheet_fetcher = _BalanceStatementsFetcher()
         self.__data_parser = _SimpleBalanceSheetParser()
 
-    def get_data_frame(self, year, season):
+    def get_data_frame(self, year, season, source_policy=Source.CACHE_ONLY):
         def dict_generator(raw_data, parser):
             return None if raw_data is None else parser(raw_data)
         dict_simple_balance_sheet = dict_generator(self.get_simple_balance_sheet_raw_data(year, season),
@@ -34,29 +35,12 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
             return pd.DataFrame([dict_balance_sheet.values()], columns=dict_balance_sheet.keys(), index=period_index)
 
     def get_simple_balance_sheet_raw_data(self, year, season):
-        result = self.__simple_data_fetcher.fetch({'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
-        if result.ok is False:
-            print('get content fail')
-            return
-        return result.content
+        raw_data = get_raw_data(PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS + str(year) + "Q" + str(season), str(self._stock_id))
+        return raw_data
 
     def get_balance_sheet_raw_data(self, year, season):
-        result = self.__balance_sheet_fetcher.fetch({'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
-        if result.ok is False:
-            return
-        else:
-            balance_sheet_table = self.get_balance_sheet_table(result.content)
-            # print('balance_sheet_table = ', balance_sheet_table)
-            if balance_sheet_table is not None:
-                return result.content
-
-        print(self._stock_id, ': need to fetch step 2', )
-        result = self.__balance_sheet_fetcher.fetch_second_step_2(
-            {'stock_id': self._stock_id, 'year': year - 1911, 'season': season})
-        if result.ok is False:
-            return
-
-        return result.content
+        raw_data = get_raw_data(PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS + str(year) + "Q" + str(season), str(self._stock_id))
+        return raw_data
 
     def __parse_simple_balance_sheet(self, raw_input):
         table = self.get_simple_balance_sheet_table(raw_input)

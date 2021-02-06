@@ -50,7 +50,7 @@ class MainTest(unittest.TestCase):
         print(result.content)
 
     def test_request_income_statement(self):
-        income_statement_processor = SimpleIncomeStatementProcessor(2330)
+        income_statement_processor = SimpleIncomeStatementProcessor(2809)
         # data_frame = income_statement_processor.get_data_frame(2018, 2)
         # self.assertIsNotNone(data_frame)
         # self.assertTrue(data_frame.loc['2018Q2', 'EPS'] is not None)
@@ -86,12 +86,13 @@ class MainTest(unittest.TestCase):
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
     def test_request_balance_sheet(self):
-        balance_sheet_processor = SimpleBalanceSheetProcessor(2330)
+        # balance_sheet_processor = SimpleBalanceSheetProcessor(2809)
+        balance_sheet_processor = SimpleBalanceSheetProcessor(2884)
         # data_frame = balance_sheet_processor.get_data_frame(2018, 2)
         # self.assertIsNotNone(data_frame)
         # self.assertTrue(data_frame.loc['2018Q2', '每股淨值'] is not None)
         #
-        # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016})
+        # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2013})
         # data_frame = balance_sheet_processor.get_data_frames(since={'year': 2016, 'season': 1},
         #                                                      to={'year': 2016, 'season': 1})
         data_frame = balance_sheet_processor.get_data_frame(2020, 1)
@@ -428,8 +429,10 @@ class MainTest(unittest.TestCase):
         # get_simple_balance_sheet_raw_data(2330, 2020, 3)
         # get_balance_sheet_raw_datas(stock_code_list)
         # fetch_shareholder_equity_raw_data(2809, 2020, 3)
-        fetch_cash_flow_raw_datas([2809])
+        # fetch_cash_flow_raw_datas([2809])
         # fetch_price_measurement_raw_datas([2809])
+        fetch_simple_balance_sheet_raw_datas([2884])
+        # fetch_balance_sheet_raw_datas([2884])
 
 
     def store_raw_data(self, data, output_dir, file_name):
