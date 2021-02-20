@@ -1,14 +1,20 @@
 import logging
 import os
+import time
 import traceback
 from datetime import datetime
 from os import path
-from shutil import copyfile
 from urllib.parse import urlencode
+from urllib.request import urlopen, ProxyHandler, build_opener, install_opener, Request
 
+import requests
 from bs4 import BeautifulSoup
+from pymongo import MongoClient
 from selenium import webdriver
 from selenium.webdriver import FirefoxProfile
+from stem import Signal
+from stem.control import Controller
+from stem.process import launch_tor_with_config
 
 from rdss.fetcher import DataFetcher
 from twse_crawler import gen_output_path
@@ -31,6 +37,31 @@ __cash_flow_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb
 
 __logger = logging.getLogger("twse.DataFetcher")
 
+mongo_client = MongoClient('localhost', 27017)
+DB_TWSE = "TWSE"
+TABLE_PRICE_MEASUREMENT = "price_measurement"
+
+proxy_port = 9050
+ctrl_port = 9051
+
+
+def _tor_process_exists():
+    try:
+        ctrl = Controller.from_port(port=ctrl_port)
+        ctrl.close()
+        return True
+    except:
+        return False
+
+
+def _launch_tor():
+    return launch_tor_with_config(
+        config={
+            'SOCKSPort': str(proxy_port),
+            'ControlPort': str(ctrl_port)
+        },
+        take_ownership=True)
+
 
 def fetch_stock_count_raw_data(stock_id, since_year, to_year):
     fetch_balance_sheet_raw_datas([stock_id], since_year, to_year)
@@ -51,7 +82,90 @@ def fetch_stock_count_raw_datas(stock_ids, since_year=datetime.now().year, to_ye
     __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_STOCK_COUNT, fetcher)
 
 
+class TorHandler:
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'}
+
+    def set_url_proxy(self):
+        proxy_support = ProxyHandler({'http': '127.0.0.1:8118'})
+        opener = build_opener(proxy_support)
+        install_opener(opener)
+
+    def open_url(self, url):
+        # communicate with TOR via a local proxy (privoxy)
+
+        self.set_url_proxy()
+        request = Request(url, None, self.headers)
+        return urlopen(request).read().decode('utf-8')
+
+    def renew_connection(self):
+        wait_time = 2
+        number_of_ip_rotations = 3
+        ip = urlopen("http://icanhazip.com").read()
+        print('My first IP: {}'.format(ip))
+        # for i in range(0, number_of_ip_rotations):
+        old_ip = ip
+        seconds = 0
+
+        # Loop until the 'new' IP address is different than the 'old' IP address,
+        # It may take the TOR network some time to effect a different IP address
+        while ip == old_ip:
+            time.sleep(wait_time)
+            seconds += wait_time
+            print('{} seconds elapsed awaiting a different IP address.'.format(seconds))
+
+            # http://icanhazip.com/ is a site that returns your IP address
+            ip = urlopen("http://icanhazip.com").read()
+            print('My new IP: {}'.format(ip))
+            with Controller.from_port(port=9051) as controller:
+                controller.authenticate()
+                controller.signal(Signal.NEWNYM)
+                controller.close()
+
+
+def fetch_price_measurement_raw_datas_2(stock_ids):
+    tor_handler = TorHandler()
+    tor_handler.set_url_proxy()
+    ip = urlopen("http://icanhazip.com").read()
+    # ip = tor_handler.open_url('http://icanhazip.com/')
+    print('My first IP: {}'.format(ip))
+
+    # Cycle through the specified number of IP addresses via TOR
+    index = 0
+    session = requests.session()
+
+    # for stock_id in stock_ids:
+    tor_handler.renew_connection()
+    session.proxies.update({'https': '127.0.0.1:8118'})
+
+    while index < len(stock_ids):
+        stock_id = stock_ids[index]
+        try:
+            result = session.request(method='GET', url="https://www.twse.com.tw/exchangeReport/FMNPTK",
+                                     params={"response": "json", "stockNo": str(stock_id)},
+                                     headers={'Connection': 'close'}, timeout=10)
+            print('stock_id = ', stock_id, ' success = ', result.ok)
+            print('content = ', result.content)
+            print('json = ', result.json())
+        except Exception as inst:
+            __logger.error("get exception in " + str(stock_id) + ":" + str(inst))
+            traceback.print_tb(inst.__traceback__)
+            result = None
+
+        if result is None or not result.ok:
+            tor_handler.renew_connection()
+        else:
+            db = mongo_client[DB_TWSE]
+            collection = db[TABLE_PRICE_MEASUREMENT]
+            collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"content": result.json()}},
+                                           upsert=True)
+            index += 1
+
+
 def fetch_price_measurement_raw_datas(stock_ids):
+    db = mongo_client[DB_TWSE]
+    collection = db[TABLE_PRICE_MEASUREMENT]
     for stock_id in stock_ids:
         params = {'STOCK_ID': stock_id}
         path_dir = os.path.abspath(gen_output_path(PATH_DIR_RAW_DATA_PRICE_MEASUREMENT))
@@ -74,7 +188,18 @@ def fetch_price_measurement_raw_datas(stock_ids):
         file_path = os.path.join(path_dir, "BzPerformance.html")
         try:
             output_file_path = gen_output_path(PATH_DIR_RAW_DATA_PRICE_MEASUREMENT, str(stock_id))
-            copyfile(file_path, output_file_path)
+            # copyfile(file_path, output_file_path)
+            with open(file_path, 'rb') as in_put:
+                raw_input = in_put.read()
+                in_put.close()
+                print(raw_input)
+                record = {
+                    "stock_id": str(stock_id),
+                    "content": raw_input
+                }
+                post_id = collection.insert_one(record)
+                print("post_id = ", post_id)
+
         except Exception as inst:
             __logger.error("get exception in " + str(stock_id) + ":" + str(inst))
             traceback.print_tb(inst.__traceback__)
@@ -155,11 +280,13 @@ def fetch_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(si
         has_result = not (any(element.get_text() == "查詢無資料" for element in
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
+
     __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS, fetcher)
 
 
 def fetch_cash_flow_raw_data(stock_id, year, season):
     fetch_cash_flow_raw_datas([stock_id], [{'year': year, 'season': season}])
+
 
 def fetch_cash_flow_raw_datas(stock_ids, time_lines=get_time_lines(since={'year': 2013})):
     def fetcher(stock_id, year, season):
@@ -178,6 +305,7 @@ def fetch_cash_flow_raw_datas(stock_ids, time_lines=get_time_lines(since={'year'
         has_result = not (any(element.get_text() == "查詢無資料" or element.get_text() == '查無所需資料！' for element in
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
+
     __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_CASH_FLOW, fetcher)
 
 
@@ -193,7 +321,6 @@ def __fetch_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):
                 store_raw_data(result, dir_path, str(stock_id))
 
     __iterate_all(stock_ids, time_lines, action)
-
 
 
 def __iterate_all(stock_ids, time_lines, action):
