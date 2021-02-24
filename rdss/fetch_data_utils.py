@@ -102,7 +102,9 @@ class TorHandler:
     def renew_connection(self):
         wait_time = 2
         number_of_ip_rotations = 3
-        ip = urlopen("http://icanhazip.com").read()
+        session = requests.session()
+        session.proxies = {'http': 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
+        ip = session.get("http://icanhazip.com").text
         print('My first IP: {}'.format(ip))
         # for i in range(0, number_of_ip_rotations):
         old_ip = ip
@@ -116,32 +118,30 @@ class TorHandler:
             print('{} seconds elapsed awaiting a different IP address.'.format(seconds))
 
             # http://icanhazip.com/ is a site that returns your IP address
-            ip = urlopen("http://icanhazip.com").read()
-            print('My new IP: {}'.format(ip))
             with Controller.from_port(port=9051) as controller:
                 controller.authenticate()
                 controller.signal(Signal.NEWNYM)
                 controller.close()
+            ip = session.get("http://icanhazip.com").text
+            print('My new IP: {}'.format(ip))
 
 
 def fetch_price_measurement_raw_datas_2(stock_ids):
     tor_handler = TorHandler()
-    tor_handler.set_url_proxy()
-    ip = urlopen("http://icanhazip.com").read()
-    # ip = tor_handler.open_url('http://icanhazip.com/')
-    print('My first IP: {}'.format(ip))
+    session = requests.session()
+    session.proxies = {'http': 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
 
     # Cycle through the specified number of IP addresses via TOR
     index = 0
-    session = requests.session()
 
     # for stock_id in stock_ids:
     tor_handler.renew_connection()
-    session.proxies.update({'https': '127.0.0.1:8118'})
 
     while index < len(stock_ids):
         stock_id = stock_ids[index]
         try:
+            # ip = session.get("http://icanhazip.com").text
+            # print('My IP: {}'.format(ip))
             result = session.request(method='GET', url="https://www.twse.com.tw/exchangeReport/FMNPTK",
                                      params={"response": "json", "stockNo": str(stock_id)},
                                      headers={'Connection': 'close'}, timeout=10)
