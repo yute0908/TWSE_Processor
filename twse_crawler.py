@@ -1,13 +1,9 @@
-from datetime import datetime
-
-from bs4 import BeautifulSoup
-import requests
-import time
-import pandas as pd
 import os
-import traceback
+import time
 
-from tabulate import tabulate
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 
 
 class Crawler:

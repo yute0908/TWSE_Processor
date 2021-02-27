@@ -2,7 +2,6 @@ from datetime import datetime
 
 import pandas as pd
 from bs4 import BeautifulSoup
-from tabulate import tabulate
 
 from rdss.fetcher import DataFetcher
 from rdss.statement_processor import StatementProcessor

@@ -1,34 +1,29 @@
 import unittest
-from datetime import datetime
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-from tabulate import tabulate
 
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_predict_evaluate, \
-    create_stock_datas, get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
-    get_stock_data, get_matrix_value, generate_predictions2, resync_for_dividend_policy, \
-    _sync_performance, _sync_statement, get_stock_list
-from evaluation_utils2 import _sync_statements, _sync_profit_statement, _sync_balance_sheet, _sync_cash_flow_statement, \
-    _sync_dividend_policy, sync_statements, _read_df_datas, generate_prediction, sync_performance, generate_predictions, \
+    get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
+    get_stock_data, get_matrix_value, resync_for_dividend_policy, \
+    _sync_performance, get_stock_list
+from evaluation_utils2 import _sync_dividend_policy, sync_statements, sync_performance, generate_predictions, \
     Option
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.dividend_policy2 import DividendPolicyProcessor2
-from rdss.fetch_data_utils import fetch_simple_balance_sheet_raw_data, fetch_simple_balance_sheet_raw_datas, \
-    fetch_balance_sheet_raw_data, fetch_balance_sheet_raw_datas, fetch_shareholder_equity_raw_data, \
-    fetch_cash_flow_raw_data, fetch_price_measurement_raw_datas, fetch_cash_flow_raw_datas
+from rdss.fetch_data_utils import fetch_simple_balance_sheet_raw_datas
 from rdss.fetcher import DataFetcher
-from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
+from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
-from stock_data import read, read_dfs, store_df
+from stock_data import read
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
-from utils import get_recent_seasons, get_time_lines
+from utils import get_recent_seasons
 from value_measurement import PriceMeasurementProcessor, IndexType
 
 
@@ -263,7 +258,7 @@ class MainTest(unittest.TestCase):
         # print('column type = ', type(df_balance_sheet.columns))
         # _sync_cash_flow_statement(2013, 1101)
         # _sync_dividend_policy(2013, 1101)
-        from evaluation_utils2 import _sync_performance
+        pass
 
         # _sync_performance(8103)
         # _sync_performance(1340)
