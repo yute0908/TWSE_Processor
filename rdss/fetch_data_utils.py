@@ -120,7 +120,7 @@ class TorHandler:
 
             # http://icanhazip.com/ is a site that returns your IP address
             with Controller.from_port(port=9051) as controller:
-                controller.authenticate()
+                controller.authenticate("my-tor-password")
                 controller.signal(Signal.NEWNYM)
                 controller.close()
             ip = session.get("http://icanhazip.com").text
