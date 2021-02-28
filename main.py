@@ -1,7 +1,7 @@
 import logging
 
 from evaluation_utils import get_stock_codes
-from rdss.fetch_data_utils import fetch_price_measurement_raw_datas_2
+from rdss.fetch_data_utils import fetch_twse_price_measurement_raw_datas, fetch_tpex_price_measurement_raw_datas
 
 logger = logging.getLogger('twse')
 logger.setLevel(logging.DEBUG)
@@ -15,9 +15,10 @@ logger.addHandler(logger_file_handler)
 
 if __name__ == "__main__":
     logger.info('start')
-    stock_code_list = get_stock_codes(stock_type='上市')
-    stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
-    fetch_price_measurement_raw_datas_2(stock_code_list)
+    twse_code_list = get_stock_codes(stock_type='上市')
+    tpex_code_list = get_stock_codes(stock_type='上櫃')
+    # fetch_twse_price_measurement_raw_datas(stock_code_list)
+    fetch_tpex_price_measurement_raw_datas(tpex_code_list)
     # db = mongo_client[DB_TWSE]
     # collection = db[TABLE_PRICE_MEASUREMENT]
     # record = collection.find_one({"stock_id": str(1101)})

@@ -38,6 +38,7 @@ __cash_flow_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb
 __logger = logging.getLogger("twse.DataFetcher")
 
 mongo_client = MongoClient('localhost', 27017)
+# mongo_client = MongoClient('192.168.1.109', 27017)
 DB_TWSE = "TWSE"
 TABLE_PRICE_MEASUREMENT = "price_measurement"
 
@@ -126,7 +127,7 @@ class TorHandler:
             print('My new IP: {}'.format(ip))
 
 
-def fetch_price_measurement_raw_datas_2(stock_ids):
+def fetch_twse_price_measurement_raw_datas(stock_ids):
     tor_handler = TorHandler()
     session = requests.session()
     session.proxies = {'http': 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
@@ -161,6 +162,17 @@ def fetch_price_measurement_raw_datas_2(stock_ids):
             collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"content": result.json()}},
                                            upsert=True)
             index += 1
+
+def fetch_tpex_price_measurement_raw_datas(stock_ids):
+    session = requests.session()
+    session.proxies = {'http': 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
+    index = 0
+    while index < len(stock_ids):
+        stock_id = stock_ids[index]
+        result = session.post("https://www.tpex.org.tw/web/stock/statistics/monthly/result_st42.php?l=zh-tw",
+                              {'ajax': 'true', 'input_stock_code': str(stock_id)})
+        index += 1
+        print('stock id ', stock_id, ' result = ', result.content)
 
 
 def fetch_price_measurement_raw_datas(stock_ids):
