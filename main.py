@@ -2,6 +2,7 @@ import logging
 
 from evaluation_utils import get_stock_codes
 from rdss.fetch_data_utils import fetch_twse_price_measurement_raw_datas, fetch_tpex_price_measurement_raw_datas
+from value_measurement import TPEXPriceMeasurementProcessor
 
 logger = logging.getLogger('twse')
 logger.setLevel(logging.DEBUG)
@@ -19,6 +20,8 @@ if __name__ == "__main__":
     tpex_code_list = get_stock_codes(stock_type='上櫃')
     # fetch_twse_price_measurement_raw_datas(stock_code_list)
     fetch_tpex_price_measurement_raw_datas(tpex_code_list)
+    # tpex_price_measurement_processor = TPEXPriceMeasurementProcessor()
+    # tpex_price_measurement_processor.get_data_frame(tpex_code_list[0])
     # db = mongo_client[DB_TWSE]
     # collection = db[TABLE_PRICE_MEASUREMENT]
     # record = collection.find_one({"stock_id": str(1101)})

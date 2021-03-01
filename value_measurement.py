@@ -4,10 +4,12 @@ from enum import Enum
 from urllib.parse import urlencode
 
 import pandas as pd
+from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import FirefoxProfile
 
 from data_processor import DataProcessor
+from rdss.fetch_data_utils import mongo_client, DB_TWSE, TABLE_TPEX_PRICE_MEASUREMENT
 from twse_crawler import gen_output_path
 
 
@@ -54,10 +56,12 @@ class PriceMeasurementProcessor(DataProcessor):
                 #                                                      end=pd.Period(year, freq='Y'),
                 #                                                      freq='Y'), years))
                 # print('periodIndex = ', periodIndexes)
-                periodIndex = pd.PeriodIndex(start=pd.Period(years[-1], freq='Y'), end=pd.Period(years[0], freq='Y'), freq='Y')
+                periodIndex = pd.PeriodIndex(start=pd.Period(years[-1], freq='Y'), end=pd.Period(years[0], freq='Y'),
+                                             freq='Y')
                 print(periodIndex)
-                print([prices[i:i+1] for i in range(0, len(prices))])
-                df = pd.DataFrame(data=[prices[i:i+1] for i in range(len(prices) - 1, -1, -1)], columns=['平均股價'], index=periodIndex)
+                print([prices[i:i + 1] for i in range(0, len(prices))])
+                df = pd.DataFrame(data=[prices[i:i + 1] for i in range(len(prices) - 1, -1, -1)], columns=['平均股價'],
+                                  index=periodIndex)
 
             print('df = ', df)
             # df['平均股價'] = df['平均股價'].map(lambda price: float(price) if price != '-' else float(0))
@@ -88,3 +92,15 @@ class PriceMeasurementProcessor(DataProcessor):
         print(revamp_list)
 
         return revamp_list
+
+
+class TPEXPriceMeasurementProcessor:
+    def get_data_frame(self, stock_id):
+        db = mongo_client[DB_TWSE]
+        collection = db[TABLE_TPEX_PRICE_MEASUREMENT]
+        record = collection.find_one({"stock_id": str(1240)})
+        if record is not None:
+            # print(record['content'])
+            soup = BeautifulSoup(record['content'], 'html.parser')
+            table = soup.find('table', attrs={"class": "page-table-board"})
+            print(table)

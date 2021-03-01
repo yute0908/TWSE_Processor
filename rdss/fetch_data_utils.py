@@ -40,7 +40,8 @@ __logger = logging.getLogger("twse.DataFetcher")
 mongo_client = MongoClient('localhost', 27017)
 # mongo_client = MongoClient('192.168.1.109', 27017)
 DB_TWSE = "TWSE"
-TABLE_PRICE_MEASUREMENT = "price_measurement"
+TABLE_TWSE_PRICE_MEASUREMENT = "tese_price_measurement"
+TABLE_TPEX_PRICE_MEASUREMENT = "tpex_price_measurement"
 
 proxy_port = 9050
 ctrl_port = 9051
@@ -65,7 +66,7 @@ def _launch_tor():
 
 
 def fetch_stock_count_raw_data(stock_id, since_year, to_year):
-    fetch_balance_sheet_raw_datas([stock_id], since_year, to_year)
+    fetch_stock_count_raw_datas([stock_id], since_year, to_year)
 
 
 def fetch_stock_count_raw_datas(stock_ids, since_year=datetime.now().year, to_year=datetime.now().year):
@@ -121,6 +122,7 @@ class TorHandler:
             # http://icanhazip.com/ is a site that returns your IP address
             with Controller.from_port(port=9051) as controller:
                 controller.authenticate("my-tor-password")
+                # controller.authenticate()
                 controller.signal(Signal.NEWNYM)
                 controller.close()
             ip = session.get("http://icanhazip.com").text
@@ -158,10 +160,11 @@ def fetch_twse_price_measurement_raw_datas(stock_ids):
             tor_handler.renew_connection()
         else:
             db = mongo_client[DB_TWSE]
-            collection = db[TABLE_PRICE_MEASUREMENT]
+            collection = db[TABLE_TWSE_PRICE_MEASUREMENT]
             collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"content": result.json()}},
                                            upsert=True)
             index += 1
+
 
 def fetch_tpex_price_measurement_raw_datas(stock_ids):
     index = 0
@@ -169,13 +172,17 @@ def fetch_tpex_price_measurement_raw_datas(stock_ids):
     while index < len(stock_ids):
         stock_id = stock_ids[index]
         result = fetcher.fetch({'ajax': 'true', 'input_stock_code': str(stock_id)})
+        db = mongo_client[DB_TWSE]
+        collection = db[TABLE_TPEX_PRICE_MEASUREMENT]
+        collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"content": result.content}},
+                                       upsert=True)
         index += 1
         print('stock id ', stock_id, ' result = ', result.content)
 
 
 def fetch_price_measurement_raw_datas(stock_ids):
     db = mongo_client[DB_TWSE]
-    collection = db[TABLE_PRICE_MEASUREMENT]
+    collection = db[TABLE_TWSE_PRICE_MEASUREMENT]
     for stock_id in stock_ids:
         params = {'STOCK_ID': stock_id}
         path_dir = os.path.abspath(gen_output_path(PATH_DIR_RAW_DATA_PRICE_MEASUREMENT))
