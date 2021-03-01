@@ -164,13 +164,11 @@ def fetch_twse_price_measurement_raw_datas(stock_ids):
             index += 1
 
 def fetch_tpex_price_measurement_raw_datas(stock_ids):
-    session = requests.session()
-    session.proxies = {'http': 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
     index = 0
+    fetcher = DataFetcher("https://www.tpex.org.tw/web/stock/statistics/monthly/result_st42.php?l=zh-tw")
     while index < len(stock_ids):
         stock_id = stock_ids[index]
-        result = session.post("https://www.tpex.org.tw/web/stock/statistics/monthly/result_st42.php?l=zh-tw",
-                              {'ajax': 'true', 'input_stock_code': str(stock_id)})
+        result = fetcher.fetch({'ajax': 'true', 'input_stock_code': str(stock_id)})
         index += 1
         print('stock id ', stock_id, ' result = ', result.content)
 
