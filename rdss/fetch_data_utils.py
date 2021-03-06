@@ -40,8 +40,15 @@ __logger = logging.getLogger("twse.DataFetcher")
 mongo_client = MongoClient('localhost', 27017)
 # mongo_client = MongoClient('192.168.1.109', 27017)
 DB_TWSE = "TWSE"
-TABLE_TWSE_PRICE_MEASUREMENT = "tese_price_measurement"
+TABLE_TWSE_PRICE_MEASUREMENT = "twse_price_measurement"
 TABLE_TPEX_PRICE_MEASUREMENT = "tpex_price_measurement"
+TABLE_SIMPLE_BALANCE_SHEET = "balance_sheet"
+TABLE_FULL_BALANCE_SHEET = "full_balance_sheet"
+TABLE_CASH_FLOW = "cash_flow"
+TABLE_SHAREHOLDER_EQUITY = "shareholder_equity"
+TABLE_STOCK_COUNT = "stock_count"
+TABLE_DIVIDEND_POLICY = "dividend_policy"
+
 
 proxy_port = 9050
 ctrl_port = 9051
@@ -121,8 +128,8 @@ class TorHandler:
 
             # http://icanhazip.com/ is a site that returns your IP address
             with Controller.from_port(port=9051) as controller:
-                controller.authenticate("my-tor-password")
-                # controller.authenticate()
+                # controller.authenticate("my-tor-password")
+                controller.authenticate()
                 controller.signal(Signal.NEWNYM)
                 controller.close()
             ip = session.get("http://icanhazip.com").text
@@ -356,7 +363,10 @@ def store_raw_data(data, output_dir, file_name):
 
 def get_raw_data(input_dir, file_name):
     input_path = gen_output_path(input_dir, file_name)
-    with open(input_path, 'rb') as in_put:
-        raw_input = in_put.read()
-        in_put.close()
-        return raw_input
+    try:
+        with open(input_path, 'rb') as in_put:
+            raw_input = in_put.read()
+            in_put.close()
+            return raw_input
+    except FileNotFoundError as fnfe:
+        return None
