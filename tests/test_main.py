@@ -24,7 +24,7 @@ from stock_data import read
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
 from utils import get_recent_seasons
-from value_measurement import PriceMeasurementProcessor, IndexType
+from value_measurement import PriceMeasurementProcessor, IndexType, PriceMeasurementProcessor2
 
 
 class MainTest(unittest.TestCase):
@@ -182,8 +182,8 @@ class MainTest(unittest.TestCase):
         print(ts.index)
 
     def test_price_measurement(self):
-        price_measurement_processor = PriceMeasurementProcessor(2330)
-        df = price_measurement_processor.get_data_frame(indexType=IndexType.YEAR_INDEX)
+        price_measurement_processor = PriceMeasurementProcessor2()
+        df = price_measurement_processor.get_data_frame(1101)
         self.assertIsNotNone(df)
         # print(df.loc['2019', '平均股價'], type(df.loc['2019', '平均股價']))
         # self.assertTrue(df.loc[:, ['平均股價']] is not None)

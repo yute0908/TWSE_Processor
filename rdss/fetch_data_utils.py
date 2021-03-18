@@ -37,17 +37,20 @@ __cash_flow_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb
 
 __logger = logging.getLogger("twse.DataFetcher")
 
-mongo_client = MongoClient('localhost', 27017)
-# mongo_client = MongoClient('192.168.1.109', 27017)
+# mongo_client = MongoClient('localhost', 27017)
+mongo_client = MongoClient('192.168.1.109', 27017)
 DB_TWSE = "TWSE"
 TABLE_TWSE_PRICE_MEASUREMENT = "twse_price_measurement"
 TABLE_TPEX_PRICE_MEASUREMENT = "tpex_price_measurement"
+TABLE_DATAFRAME_PRICE_MEASUREMENT = "dataframe_price_measurement"
 TABLE_SIMPLE_BALANCE_SHEET = "balance_sheet"
 TABLE_FULL_BALANCE_SHEET = "full_balance_sheet"
 TABLE_CASH_FLOW = "cash_flow"
 TABLE_SHAREHOLDER_EQUITY = "shareholder_equity"
 TABLE_STOCK_COUNT = "stock_count"
 TABLE_DIVIDEND_POLICY = "dividend_policy"
+
+DB_TWSE_DATAFRAMES = "TWSE_DATAFRAMES"
 
 
 proxy_port = 9050

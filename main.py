@@ -1,5 +1,7 @@
 import logging
 
+import pandas as pd
+
 from evaluation_utils import get_stock_codes
 from rdss.fetch_data_utils import fetch_twse_price_measurement_raw_datas, fetch_tpex_price_measurement_raw_datas, \
     PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS, get_raw_data, DB_TWSE, mongo_client, TABLE_SIMPLE_BALANCE_SHEET, \
@@ -7,7 +9,7 @@ from rdss.fetch_data_utils import fetch_twse_price_measurement_raw_datas, fetch_
     PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY, TABLE_SHAREHOLDER_EQUITY, PATH_DIR_RAW_DATA_STOCK_COUNT, TABLE_STOCK_COUNT, \
     PATH_DIR_RAW_DATA_DIVIDEND_POLICY, TABLE_DIVIDEND_POLICY
 from utils import get_time_lines, Offset
-from value_measurement import TPEXPriceMeasurementProcessor
+from value_measurement import TPEXPriceMeasurementTransformer, TWSEPriceMeasurementTransformer
 
 logger = logging.getLogger('twse')
 logger.setLevel(logging.DEBUG)
@@ -68,17 +70,9 @@ if __name__ == "__main__":
     logger.info('start')
     twse_code_list = get_stock_codes(stock_type='上市')
     tpex_code_list = get_stock_codes(stock_type='上櫃')
-    # fetch_twse_price_measurement_raw_datas(stock_code_list)
-    # fetch_tpex_price_measurement_raw_datas(tpex_code_list)
-    # move_quarterly_raw_datas_to_db(PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS, TABLE_SIMPLE_BALANCE_SHEET)
-    # move_quarterly_raw_datas_to_db(PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS, TABLE_FULL_BALANCE_SHEET)
-    # move_quarterly_raw_datas_to_db(PATH_DIR_RAW_DATA_CASH_FLOW, TABLE_CASH_FLOW)
-    # move_quarterly_raw_datas_to_db(PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY, TABLE_SHAREHOLDER_EQUITY)
-    # move_stock_count_raw_datas_to_db()
-    # move_dividend_policy_raw_datas_to_db()
-    # tpex_price_measurement_processor = TPEXPriceMeasurementProcessor()
-    # tpex_price_measurement_processor.get_data_frame(tpex_code_list[0])
-
+    # tpex_price_measurement_processor = TPEXPriceMeasurementTransformer()
+    # tpex_price_measurement_processor.transform_to_dataframe(1240)
+    TWSEPriceMeasurementTransformer().transform_to_dataframe(1101)
     # db = mongo_client[DB_TWSE]
     # collection = db[TABLE_PRICE_MEASUREMENT]
     # record = collection.find_one({"stock_id": str(1101)})
@@ -89,6 +83,8 @@ if __name__ == "__main__":
     # fetch_dividend_policy_raw_datas(stock_code_list, 2013)
     # fetch_stock_count_raw_datas(stock_code_list[0:5], since_year=2013)
     # fetch_balance_sheet_raw_datas(stock_code_list)
+    # fetch_twse_price_measurement_raw_datas(stock_code_list)
+    # fetch_tpex_price_measurement_raw_datas(tpex_code_list)
     # client = MongoClient('localhost', 27017)
     # db = client.test_database
     # post = {"author": "Mike",
