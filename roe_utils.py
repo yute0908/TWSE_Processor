@@ -79,10 +79,10 @@ def _get_for_times(stock_id, time_lines):
 
 def _get_income_statements(stock_id, time_lines):
     reversed_time_lines = time_lines[::-1]
-    income_statement_processor = SimpleIncomeStatementProcessor(stock_id)
+    income_statement_processor = SimpleIncomeStatementProcessor()
     list_df_income_statement = []
     for i in range(len(reversed_time_lines)):
-        df_income_statement = income_statement_processor.get_data_frame(reversed_time_lines[i].get('year'),
+        df_income_statement = income_statement_processor.get_data_frame(stock_id, reversed_time_lines[i].get('year'),
                                                                         reversed_time_lines[i].get('season'))
         if df_income_statement is None:
             return None

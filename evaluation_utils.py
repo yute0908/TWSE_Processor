@@ -79,7 +79,7 @@ def get_evaluate_performance(stock_id, since_year, to_year=None):
                                                                    {'year': evaluate_to_year + 1})
     df_dividend_policy.sort_index(inplace=True)
 
-    df_income_statement = SimpleIncomeStatementProcessor(stock_id).get_data_frames({'year': evaluate_since_year - 1},
+    df_income_statement = SimpleIncomeStatementProcessor().get_data_frames(stock_id, {'year': evaluate_since_year - 1},
                                                                                    {'year': evaluate_to_year})
     df_income_statement.sort_index(inplace=True)
 
@@ -255,7 +255,7 @@ def _sync_performance(stock_id, df_statement, df_performance=None):
 
 def _sync_statement(stock_id, df_statement=None):
     if df_statement is None:
-        df_income_statement = SimpleIncomeStatementProcessor(stock_id).get_data_frames({'year': 2013})
+        df_income_statement = SimpleIncomeStatementProcessor().get_data_frames(stock_id, {'year': 2013})
         df_income_statement.sort_index(inplace=True)
         balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
         df_balance_sheet = balance_sheet_processor.get_data_frames({'year': 2013})
@@ -277,7 +277,7 @@ def _sync_statement(stock_id, df_statement=None):
         if period_last < period_current:
             start_year = period_last.year if period_last.quarter < 4 else (period_last.year + 1)
             start_quarter = (period_last.quarter + 1) if period_last.quarter < 4 else 1
-            df_income_statement = SimpleIncomeStatementProcessor(stock_id).get_data_frames(
+            df_income_statement = SimpleIncomeStatementProcessor().get_data_frames(stock_id,
                 {'year': start_year, 'season': start_quarter},
                 {'year': period_current.year, 'season': period_current.quarter})
 

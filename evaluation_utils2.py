@@ -380,9 +380,9 @@ def _sync_balance_sheet(start_year, stock_id, df_balance_sheet=None):
 
 
 def _sync_profit_statement(start_year, stock_id, df_profit_statement=None):
-    income_statement_processor = SimpleIncomeStatementProcessor(stock_id)
+    income_statement_processor = SimpleIncomeStatementProcessor()
     if df_profit_statement is None:
-        df_profit_statement = income_statement_processor.get_data_frames({'year': start_year - 1})
+        df_profit_statement = income_statement_processor.get_data_frames(stock_id, {'year': start_year - 1})
     else:
         time_lines = get_time_lines(since={'year': start_year})
         dfs_get = []

@@ -45,7 +45,7 @@ class MainTest(unittest.TestCase):
         print(result.content)
 
     def test_request_income_statement(self):
-        income_statement_processor = SimpleIncomeStatementProcessor(2809)
+        income_statement_processor = SimpleIncomeStatementProcessor()
         # data_frame = income_statement_processor.get_data_frame(2018, 2)
         # self.assertIsNotNone(data_frame)
         # self.assertTrue(data_frame.loc['2018Q2', 'EPS'] is not None)
@@ -54,7 +54,7 @@ class MainTest(unittest.TestCase):
         # data_frame = income_statement_processor.get_data_frames(since={'year': 2017, 'season': 1},
         #                                                         to={'year': 2018, 'season': 2})
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
-        data_frame = income_statement_processor.get_data_frames(since={'year': 2017})
+        data_frame = income_statement_processor.get_data_frames(stock_id=2809, since={'year': 2017})
         print(data_frame)
 
     def test_shareholder_equity(self):

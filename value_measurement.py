@@ -100,7 +100,7 @@ class PriceMeasurementProcessor2:
     def get_data_frame(self, stock_id):
         db = mongo_client[DB_TWSE]
         collection = db[TABLE_DATAFRAME_PRICE_MEASUREMENT]
-        record = collection.find_one({"stock_id": str(stock_id)})
+        record = collection.find({"stock_id": str(stock_id)})
         str_data_frame_json = record['data_frame']
         data_frame = pd.read_json(str_data_frame_json, orient='split', typ='frame')
         print(data_frame.index.values)
