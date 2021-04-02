@@ -17,6 +17,7 @@ from stem.control import Controller
 from stem.process import launch_tor_with_config
 
 from rdss.fetcher import DataFetcher
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 from twse_crawler import gen_output_path
 from utils import get_time_lines, Offset
 
@@ -34,6 +35,16 @@ __shareholder_equity_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/aj
 __dividend_policy_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t05st09_2')
 __stock_count_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t16sn02')
 __cash_flow_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb05')
+
+
+__stock_count_repository = MongoDBRepository(MongoDBMeta.STOCK_COUNT)
+__twse_price_measurement_repository = MongoDBRepository(MongoDBMeta.TWSE_PRICE_MEASUREMENT)
+__tpex_price_measurement_repository = MongoDBRepository(MongoDBMeta.TPEX_PRICE_MEASUREMENT)
+__dividend_policy_repository = MongoDBRepository(MongoDBMeta.DIVIDEND_POLICY)
+__shareholder_repository = MongoDBRepository(MongoDBMeta.SHARE_HOLDER)
+__simple_balance_sheet_repository = MongoDBRepository(MongoDBMeta.SIMPLE_BALANCE_SHEET)
+__full_balance_sheet_repository = MongoDBRepository(MongoDBMeta.FULL_BALANCE_SHEET)
+__cash_flow_repository = MongoDBRepository(MongoDBMeta.CASH_FLOW)
 
 __logger = logging.getLogger("twse.DataFetcher")
 
@@ -91,7 +102,8 @@ def fetch_stock_count_raw_datas(stock_ids, since_year=datetime.now().year, to_ye
         )
         return result.content
 
-    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_STOCK_COUNT, fetcher)
+    # __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_STOCK_COUNT, fetcher)
+    __fetch_datas_and_store2(stock_ids, time_lines, fetcher, __stock_count_repository)
 
 
 class TorHandler:
@@ -169,10 +181,7 @@ def fetch_twse_price_measurement_raw_datas(stock_ids):
         if result is None or not result.ok:
             tor_handler.renew_connection()
         else:
-            db = mongo_client[DB_TWSE]
-            collection = db[TABLE_TWSE_PRICE_MEASUREMENT]
-            collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"content": result.json()}},
-                                           upsert=True)
+            __twse_price_measurement_repository.put_data(str(stock_id), result.json())
             index += 1
 
 
@@ -182,10 +191,7 @@ def fetch_tpex_price_measurement_raw_datas(stock_ids):
     while index < len(stock_ids):
         stock_id = stock_ids[index]
         result = fetcher.fetch({'ajax': 'true', 'input_stock_code': str(stock_id)})
-        db = mongo_client[DB_TWSE]
-        collection = db[TABLE_TPEX_PRICE_MEASUREMENT]
-        collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"content": result.content}},
-                                       upsert=True)
+        __tpex_price_measurement_repository.put_data(str(stock_id), result.content)
         index += 1
         print('stock id ', stock_id, ' result = ', result.content)
 
@@ -244,7 +250,9 @@ def fetch_dividend_policy_raw_datas(stock_ids, since_year=2013, to_year=datetime
             {'encodeURIComponent': 1, 'step': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
              'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id, 'date1': (since_year - 1911),
              'date2': (to_year - 1911), 'qryType': 2, 'firstin': 1})
-        store_raw_data(result.content, PATH_DIR_RAW_DATA_DIVIDEND_POLICY, str(stock_id))
+        # store_raw_data(result.content, PATH_DIR_RAW_DATA_DIVIDEND_POLICY, str(stock_id))
+        if result.content is not None:
+            __dividend_policy_repository.put_data(str(stock_id), result.content)
 
 
 def fetch_shareholder_equity_raw_data(stock_id, year, season):
@@ -266,9 +274,11 @@ def fetch_shareholder_equity_raw_datas(stock_ids, time_lines=get_time_lines(sinc
                  'co_id': stock_id, 'firstin': 1})
             parser = BeautifulSoup(result.content, 'html.parser')
             has_result = not (any(element.get_text() == "查無資料！" for element in parser.find_all('font')))
+        print('has result = ', has_result)
         return result.content if has_result else None
 
-    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY, fetcher)
+    # __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SHAREHOLDER_EQUITY, fetcher)
+    __fetch_datas_and_store2(stock_ids, time_lines, fetcher, __shareholder_repository)
 
 
 def fetch_balance_sheet_raw_data(stock_id, year, season):
@@ -290,8 +300,8 @@ def fetch_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(since={'y
         has_result = not (any(element.get_text() == "查無所需資料！" for element in
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
-
-    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS, fetcher)
+    __fetch_datas_and_store2(stock_ids, time_lines, fetcher, __full_balance_sheet_repository)
+    # __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS, fetcher)
 
 
 def fetch_simple_balance_sheet_raw_data(stock_id, year, season):
@@ -308,7 +318,8 @@ def fetch_simple_balance_sheet_raw_datas(stock_ids, time_lines=get_time_lines(si
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
 
-    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS, fetcher)
+    # __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS, fetcher)
+    __fetch_datas_and_store2(stock_ids, time_lines, fetcher, __simple_balance_sheet_repository)
 
 
 def fetch_cash_flow_raw_data(stock_id, year, season):
@@ -333,7 +344,23 @@ def fetch_cash_flow_raw_datas(stock_ids, time_lines=get_time_lines(since={'year'
                               BeautifulSoup(result.content, 'html.parser').find_all('font')))
         return result.content if has_result else None
 
-    __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_CASH_FLOW, fetcher)
+    __fetch_datas_and_store2(stock_ids, time_lines, fetcher, __cash_flow_repository)
+    # __fetch_datas_and_store(stock_ids, time_lines, PATH_DIR_RAW_DATA_CASH_FLOW, fetcher)
+
+
+def __fetch_datas_and_store2(stock_ids, time_lines, fetcher, repository):
+    def action(stock_id, time_line):
+        year = time_line['year']
+        season = time_line.get('season')
+        result = fetcher(stock_id, year) if season is None else fetcher(stock_id, year, season)
+        repository.put_data(stock_id, result, time_line)
+        # file_path = gen_output_path(dir_path, str(stock_id))
+        # dir_path = (root_dir_path + str(year)) if season is None else (root_dir_path + str(year) + "Q" + str(season))
+        # if path.exists(file_path) is False:
+        #     result = fetcher(stock_id, year) if season is None else fetcher(stock_id, year, season)
+        #     if result is not None:
+        #         store_raw_data(result, dir_path, str(stock_id))
+    __iterate_all(stock_ids, time_lines, action)
 
 
 def __fetch_datas_and_store(stock_ids, time_lines, root_dir_path, fetcher):

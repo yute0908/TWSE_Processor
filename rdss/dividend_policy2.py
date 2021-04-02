@@ -5,13 +5,15 @@ from bs4 import BeautifulSoup
 
 from rdss.fetcher import DataFetcher
 from rdss.statement_processor import StatementProcessor
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 
 
 class DividendPolicyProcessor2(StatementProcessor):
 
     def __init__(self):
         super().__init__(None)
-        self.dividend_policy_fetcher = _DividendPolicyFetcher2()
+        # self.dividend_policy_fetcher = _DividendPolicyFetcher2()
+        self.__repository = MongoDBRepository(MongoDBMeta.DIVIDEND_POLICY)
 
     def get_data_frame(self, year, season):
         pass
@@ -20,10 +22,9 @@ class DividendPolicyProcessor2(StatementProcessor):
         return self._parse_raw_data(stock_id=stock_id, raw_data=self._get_raw_data(stock_id, start_year, to_year))
 
     def _parse_raw_data(self, stock_id, raw_data):
-        soup = BeautifulSoup(raw_data, 'html.parser')
-        table = soup.find('table', attrs={"class": "hasBorder", "width": "99%"})
-
         try:
+            soup = BeautifulSoup(raw_data, 'html.parser')
+            table = soup.find('table', attrs={"class": "hasBorder", "width": "99%"})
             data_frame = pd.read_html(str(table))[0]
         except Exception as e:
             print('get', e, ' when get dividend policy')
@@ -72,12 +73,13 @@ class DividendPolicyProcessor2(StatementProcessor):
         return df_dividend
 
     def _get_raw_data(self, stock_id, since, to):
-        result = self.dividend_policy_fetcher.fetch(
-            {'stock_id': stock_id, 'start_year': since - 1911, 'to_year': to - 1911})
-        if result.ok is False:
-            print('get content fail')
-            return
-        return result.content
+        # result = self.dividend_policy_fetcher.fetch(
+        #     {'stock_id': stock_id, 'start_year': since - 1911, 'to_year': to - 1911})
+        # if result.ok is False:
+        #     print('get content fail')
+        #     return
+        # return result.content
+        return self.__repository.get_data(stock_id)
 
     def __parse_period(self, period_string):
         if period_string.find("年年度") > -1:

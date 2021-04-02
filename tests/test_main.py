@@ -15,11 +15,15 @@ from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.dividend_policy2 import DividendPolicyProcessor2
-from rdss.fetch_data_utils import fetch_simple_balance_sheet_raw_datas
+from rdss.fetch_data_utils import fetch_simple_balance_sheet_raw_datas, fetch_stock_count_raw_data, \
+    fetch_stock_count_raw_datas, fetch_twse_price_measurement_raw_datas, fetch_tpex_price_measurement_raw_datas, \
+    fetch_dividend_policy_raw_datas, fetch_shareholder_equity_raw_data, fetch_simple_balance_sheet_raw_data, \
+    fetch_balance_sheet_raw_data, fetch_cash_flow_raw_data
 from rdss.fetcher import DataFetcher
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 from stock_data import read
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
@@ -81,8 +85,8 @@ class MainTest(unittest.TestCase):
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
     def test_request_balance_sheet(self):
-        # balance_sheet_processor = SimpleBalanceSheetProcessor(2809)
-        balance_sheet_processor = SimpleBalanceSheetProcessor(2884)
+        balance_sheet_processor = SimpleBalanceSheetProcessor(2809)
+        # balance_sheet_processor = SimpleBalanceSheetProcessor(2884)
         # data_frame = balance_sheet_processor.get_data_frame(2018, 2)
         # self.assertIsNotNone(data_frame)
         # self.assertTrue(data_frame.loc['2018Q2', '每股淨值'] is not None)
@@ -156,11 +160,13 @@ class MainTest(unittest.TestCase):
 
     def test_get_dividend_policy2_raw_data(self):
         dividend_policy_processor = DividendPolicyProcessor2()
-        stock_list = get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃')
-        for stock_id in stock_list:
-            raw_data = dividend_policy_processor._get_raw_data(stock_id, 2013, 2020)
-            assert(raw_data is not None)
-            self.store_raw_data(raw_data, 'raw_datas/dividend_policies', "dividend_policy_" + str(stock_id))
+        result = dividend_policy_processor.get_data_frames(1101)
+        print(result)
+        # stock_list = get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃')
+        # for stock_id in stock_list:
+        #     raw_data = dividend_policy_processor._get_raw_data(stock_id, 2013, 2020)
+        #     assert(raw_data is not None)
+        #     self.store_raw_data(raw_data, 'raw_datas/dividend_policies', "dividend_policy_" + str(stock_id))
 
     def test_parse_dividend_policy2_raw_data(self):
         # raw_data = self.get_raw_data('raw_datas/dividend_policies', "dividend_policy_" + str(3226))
@@ -185,6 +191,7 @@ class MainTest(unittest.TestCase):
         price_measurement_processor = PriceMeasurementProcessor2()
         df = price_measurement_processor.get_data_frame(1101)
         self.assertIsNotNone(df)
+        # print(df)
         # print(df.loc['2019', '平均股價'], type(df.loc['2019', '平均股價']))
         # self.assertTrue(df.loc[:, ['平均股價']] is not None)
         # print(df)
@@ -419,15 +426,36 @@ class MainTest(unittest.TestCase):
 
     def test_fetch_data_utils(self):
         # get_simple_balance_sheet_raw_datas([2330], time_lines=get_time_lines(since={'year': 2020}))
-        # stock_code_list = get_stock_codes(stock_type='上市')
+        stock_code_list = get_stock_codes(stock_type='上市')
         # stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
-        # get_simple_balance_sheet_raw_data(2330, 2020, 3)
-        # get_balance_sheet_raw_datas(stock_code_list)
-        # fetch_shareholder_equity_raw_data(2809, 2020, 3)
-        # fetch_cash_flow_raw_datas([2809])
         # fetch_price_measurement_raw_datas([2809])
-        fetch_simple_balance_sheet_raw_datas([2884])
-        # fetch_balance_sheet_raw_datas([2884])
+
+        # fetch_twse_price_measurement_raw_datas(stock_code_list[0:1])
+
+        tpex_stock_code_list = get_stock_codes(stock_type='上櫃')
+        fetch_tpex_price_measurement_raw_datas(tpex_stock_code_list[0:1])
+        result = MongoDBRepository(MongoDBMeta.TPEX_PRICE_MEASUREMENT).get_data(stock_code_list[0])
+        self.assertIsNotNone(result)
+
+        fetch_dividend_policy_raw_datas(stock_code_list[0:1])
+        result = MongoDBRepository(MongoDBMeta.DIVIDEND_POLICY).get_data(stock_code_list[0])
+        self.assertIsNotNone(result)
+
+        fetch_shareholder_equity_raw_data(2809, 2020, 3)
+        result = MongoDBRepository(MongoDBMeta.SHARE_HOLDER).get_data(2809, {'year': 2020, 'season': 3})
+        self.assertIsNotNone(result)
+
+        fetch_simple_balance_sheet_raw_data(2884, 2020, 3)
+        result = MongoDBRepository(MongoDBMeta.SIMPLE_BALANCE_SHEET).get_data(2884, {'year': 2020, 'season': 3})
+        self.assertIsNotNone(result)
+
+        fetch_balance_sheet_raw_data(2884, 2020, 3)
+        result = MongoDBRepository(MongoDBMeta.FULL_BALANCE_SHEET).get_data(2884, {'year': 2020, 'season': 3})
+        self.assertIsNotNone(result)
+
+        fetch_cash_flow_raw_data(2809, 2020, 3)
+        result = MongoDBRepository(MongoDBMeta.CASH_FLOW).get_data(2809, {'year': 2020, 'season': 3})
+        self.assertIsNotNone(result)
 
 
     def store_raw_data(self, data, output_dir, file_name):

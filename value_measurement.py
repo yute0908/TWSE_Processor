@@ -12,6 +12,7 @@ from selenium.webdriver import FirefoxProfile
 from data_processor import DataProcessor
 from rdss.fetch_data_utils import mongo_client, DB_TWSE, TABLE_TPEX_PRICE_MEASUREMENT, DB_TWSE_DATAFRAMES, \
     TABLE_DATAFRAME_PRICE_MEASUREMENT, TABLE_TWSE_PRICE_MEASUREMENT
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 from twse_crawler import gen_output_path
 
 
@@ -97,11 +98,16 @@ class PriceMeasurementProcessor(DataProcessor):
 
 
 class PriceMeasurementProcessor2:
+    def __init__(self):
+        self.__repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PRICE_MEASUREMENT)
+
     def get_data_frame(self, stock_id):
-        db = mongo_client[DB_TWSE]
-        collection = db[TABLE_DATAFRAME_PRICE_MEASUREMENT]
-        record = collection.find({"stock_id": str(stock_id)})
-        str_data_frame_json = record['data_frame']
+        # db = mongo_client[DB_TWSE]
+        # collection = db[TABLE_DATAFRAME_PRICE_MEASUREMENT]
+        # record = collection.find({"stock_id": str(stock_id)})
+        # str_data_frame_json = record['data_frame']
+        str_data_frame_json = self.__repository.get_data(stock_id)
+
         data_frame = pd.read_json(str_data_frame_json, orient='split', typ='frame')
         print(data_frame.index.values)
         index_dict = {item: pd.Period(value=str(item)) for item in data_frame.index.values}
@@ -110,15 +116,13 @@ class PriceMeasurementProcessor2:
 
 
 class TWSEPriceMeasurementTransformer:
+    def __init__(self):
+        self.__in_repository = MongoDBRepository(MongoDBMeta.TWSE_PRICE_MEASUREMENT)
+        self.__out_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PRICE_MEASUREMENT)
+
     def transform_to_dataframe(self, stock_id):
-        db = mongo_client[DB_TWSE]
-        collection = db[TABLE_TWSE_PRICE_MEASUREMENT]
-        record = collection.find_one({"stock_id": str(stock_id)})
-        content = record['content']
-        # json_content = json.loads(content)
-        # print(content)
+        content = self.__in_repository.get_data(stock_id)
         print(content['fields'])
-        # print(content['data'])
         rows = []
         indexes = []
         for row_items in content['data']:
@@ -135,23 +139,29 @@ class TWSEPriceMeasurementTransformer:
                                   columns=['成交股數', '成交金額', '成交筆數', '最高價', '日期', '最低價', '日期', '收盤平均價'])
         print(data_frame)
         data_frame_json = data_frame.to_json(orient='split')
-        collection = db[TABLE_DATAFRAME_PRICE_MEASUREMENT]
-        collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"data_frame": data_frame_json}},
-                               upsert=True)
-        record = collection.find_one({"stock_id": str(stock_id)})
-        data_frame_json = record['data_frame']
-        print(data_frame_json)
-        data_frame_2 = pd.read_json(data_frame_json, orient='split', typ='frame')
-        print(data_frame_2)
+        self.__out_repository.put_data(stock_id, data_frame_json)
+        # db = mongo_client[DB_TWSE]
+        # collection = db[TABLE_DATAFRAME_PRICE_MEASUREMENT]
+        # collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"data_frame": data_frame_json}},
+        #                        upsert=True)
+        # record = collection.find_one({"stock_id": str(stock_id)})
+        # data_frame_json = record['data_frame']
+        # print(data_frame_json)
+        # data_frame_2 = pd.read_json(data_frame_json, orient='split', typ='frame')
+        # print(data_frame_2)
 
 
 class TPEXPriceMeasurementTransformer:
+    def __init__(self):
+        self.__in_repository = MongoDBRepository(MongoDBMeta.TPEX_PRICE_MEASUREMENT)
+        self.__out_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PRICE_MEASUREMENT)
+
     def transform_to_dataframe(self, stock_id):
-        db = mongo_client[DB_TWSE]
-        collection = db[TABLE_TPEX_PRICE_MEASUREMENT]
-        record = collection.find_one({"stock_id": str(stock_id)})
+        # collection = db[TABLE_TPEX_PRICE_MEASUREMENT]
+        # record = collection.find_one({"stock_id": str(stock_id)})
+        record = self.__in_repository.get_data(stock_id)
         if record is not None:
-            soup = BeautifulSoup(record['content'], 'html.parser')
+            soup = BeautifulSoup(record, 'html.parser')
             table = soup.find('table', attrs={"class": "page-table-board"})
             rows = []
             indexes = []
@@ -172,11 +182,13 @@ class TPEXPriceMeasurementTransformer:
                                       columns=['成交股數', '成交金額', '成交筆數', '最高價', '日期', '最低價', '日期', '收盤平均價'])
             print(data_frame)
             data_frame_json = data_frame.to_json(orient='split')
-            collection = db[TABLE_DATAFRAME_PRICE_MEASUREMENT]
-            collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"data_frame": data_frame_json}},
-                                           upsert=True)
-            record = collection.find_one({"stock_id": str(stock_id)})
-            data_frame_json = record['data_frame']
-            print(data_frame_json)
-            data_frame_2 = pd.read_json(data_frame_json, orient='split', typ='frame')
-            print(data_frame_2)
+            self.__out_repository.put_data(stock_id, data_frame_json)
+            # db = mongo_client[DB_TWSE]
+            # collection = db[TABLE_DATAFRAME_PRICE_MEASUREMENT]
+            # collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"data_frame": data_frame_json}},
+            #                                upsert=True)
+            # record = collection.find_one({"stock_id": str(stock_id)})
+            # data_frame_json = record['data_frame']
+            # print(data_frame_json)
+            # data_frame_2 = pd.read_json(data_frame_json, orient='split', typ='frame')
+            # print(data_frame_2)

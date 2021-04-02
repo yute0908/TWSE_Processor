@@ -7,6 +7,7 @@ from idna import unicode
 from rdss.fetch_data_utils import PATH_DIR_RAW_DATA_CASH_FLOW, get_raw_data
 from rdss.fetcher import DataFetcher
 from rdss.statement_processor import StatementProcessor, Source
+from repository.mongodb_repository import MongoDBMeta, MongoDBRepository
 from utils import get_time_lines
 
 
@@ -17,6 +18,7 @@ class CashFlowStatementProcessor(StatementProcessor):
 
     def __init__(self, stock_id):
         super().__init__(stock_id)
+        self.__repository = MongoDBRepository(MongoDBMeta.CASH_FLOW)
         self._fetch_fields = ('營業活動之淨現金流入', '取得不動產、廠房及設備', '其他投資活動', '投資活動之淨現金流入')
 
     def get_data_frames(self, since, to=None, source_policy=Source.CACHE_ONLY):
@@ -71,6 +73,7 @@ class CashFlowStatementProcessor(StatementProcessor):
 
         data_dict = {}
         try:
+            raw_data = self.__repository.get_data(str(self._stock_id), {'year': year, 'season': season})
             raw_data = get_raw_data(PATH_DIR_RAW_DATA_CASH_FLOW + str(year) + "Q" + str(season), str(self._stock_id))
             bs = BeautifulSoup(raw_data, 'html.parser')
             table = bs.find_all('table', attrs={"class": "hasBorder", "align": "center"})

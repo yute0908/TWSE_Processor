@@ -3,25 +3,19 @@ from datetime import datetime
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from rdss.fetcher import DataFetcher
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 
 
 class StockCountProcessor:
 
     def __init__(self):
-        self.__data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t16sn02')
+        self.__repository = MongoDBRepository(MongoDBMeta.STOCK_COUNT)
 
     def get_stock_count(self, stock_id, year):
-        result = self.__data_fetcher.fetch(
-            {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id', 't05st29_c_ifrs': 'N',
-             't05st30_c_ifrs': 'N', 'inpuType': 'co_id', 'TYPEK': 'all', 'isnew': 'false', 'co_id': stock_id,
-             'year': (year - 1911)}
-        )
-
-        if result.ok is False:
+        raw_data = self.__repository.get_data(stock_id, {'year': year})
+        if raw_data is None:
             return None
-        bs = BeautifulSoup(result.content, 'html.parser')
-        # table01 = bs.find_all('table', {'width': '90%'})
+        bs = BeautifulSoup(raw_data, 'html.parser')
         table = bs.find_all(has_table_width_no_class)
         # print(bs.prettify())
         # print(len(table))

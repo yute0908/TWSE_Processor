@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 
 from rdss.fetcher import DataFetcher
 from rdss.statement_processor import StatementProcessor
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 from utils import get_time_lines
 
 
@@ -13,7 +14,8 @@ class ShareholderEquityProcessor(StatementProcessor):
     def __init__(self, stock_id):
         super().__init__(stock_id)
         self.__tag = "ShareholderEquityProcessor"
-        self._data_fetcher = _ShareholderEquityFetcher()
+        self.__repository = MongoDBRepository(MongoDBMeta.SHARE_HOLDER)
+        # self._data_fetcher = _ShareholderEquityFetcher()
         self.items_to_get = ('期初餘額', '期末餘額')
         self.fields_to_get = ('權益總額',)
 
@@ -22,11 +24,11 @@ class ShareholderEquityProcessor(StatementProcessor):
         dfs = []
         column_index = pd.MultiIndex.from_product([self.fields_to_get, self.items_to_get], names=['first', 'second'])
         print(column_index)
-        last_result = self._get_data_dict(time_lines[0].get('year') - 1911, time_lines[0].get('season') - 1) if len(
+        last_result = self._get_data_dict(time_lines[0].get('year'), time_lines[0].get('season')) if len(
             time_lines) > 0 and time_lines[0].get('season') > 1 else None
 
         for time_line in time_lines:
-            result = self._get_data_dict(time_line.get('year') - 1911, time_line.get('season'))
+            result = self._get_data_dict(time_line.get('year'), time_line.get('season'))
             if result is None:
                 break
             if last_result is not None:
@@ -51,21 +53,9 @@ class ShareholderEquityProcessor(StatementProcessor):
         return self.get_data_frames(since={'year': year, 'season': season}, to={'year': year, 'season': season})
 
     def _get_data_dict(self, year, season):
-        params_list = [
-            {'encodeURIComponent': 1, 'step': 1, 'firstin': 1, 'off': 1, 'queryName': 'co_id', 'inpuType': 'co_id',
-             'TYPEK': 'all', 'isnew': 'false', 'co_id': self._stock_id, 'year': year,
-             'season': season},
-            {'encodeURIComponent': 1, 'TYPEK': 'sii', 'step': 2, 'year': 108, 'season': 3, 'co_id': 2809,
-                  'firstin': 1}]
-        return_value = None
-        for params in params_list:
-            result = self._data_fetcher.fetch(params)
-            if result.ok is not False:
-                return_value = self._parse_data(result.content)
-            if return_value is not None:
-                break
-
-        return return_value
+        raw_data = self.__repository.get_data(self._stock_id, {'year': year, 'season': season})
+        if raw_data is not None:
+            return self._parse_data(raw_data)
 
     def _parse_data(self, content):
         try:

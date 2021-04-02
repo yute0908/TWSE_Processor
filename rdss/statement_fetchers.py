@@ -3,14 +3,16 @@ import traceback
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from rdss.fetch_data_utils import get_raw_data, PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS, mongo_client, DB_TWSE, \
-    TABLE_DATAFRAME_PRICE_MEASUREMENT, TABLE_SIMPLE_BALANCE_SHEET
 from rdss.parsers import DataFrameParser
-from rdss.statement_processor import StatementProcessor, Source
+from rdss.statement_processor import Source
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 from utils import get_time_lines
 
 
 class SimpleIncomeStatementProcessor:
+
+    def __init__(self):
+        self.__repository = MongoDBRepository(MongoDBMeta.SIMPLE_BALANCE_SHEET)
 
     def get_data_frames(self, stock_id, since, to=None, source_policy=Source.CACHE_ONLY):
         time_lines = get_time_lines(since=since, to=to)
@@ -48,13 +50,8 @@ class SimpleIncomeStatementProcessor:
         #     return None
         try:
             dict_datas = {}
-            raw_data = get_raw_data(PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS + str(year) + "Q" + str(season), str(stock_id))
-            db = mongo_client[DB_TWSE]
-            collection = db[TABLE_SIMPLE_BALANCE_SHEET]
-            record = collection.find_one({'$and': [{"stock_id": {"$eq": str(stock_id)}},
-                                                   {"time_line": {"$eq": {'year': year, 'season': season}}}]})
-            # bs = BeautifulSoup(raw_data, 'html.parser')
-            bs = BeautifulSoup(record['content'], 'html.parser')
+            raw_data = self.__repository.get_data(str(stock_id), {'year': year, 'season': season})
+            bs = BeautifulSoup(raw_data, 'html.parser')
             tables = bs.find_all('table', attrs={"class": "hasBorder", "align": "center", "width": "70%"})
             table = tables[2]
             rows = table.find_all('tr')

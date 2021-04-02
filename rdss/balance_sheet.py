@@ -4,27 +4,29 @@ from functools import reduce
 import pandas as pd
 from bs4 import BeautifulSoup
 
-from rdss.fetch_data_utils import get_raw_data, PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS, \
-    PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS
 from rdss.parsers import DataFrameParser
-from rdss.simple_statments_fetcher import _SimpleBalanceStatementsFetcher, _BalanceStatementsFetcher
 from rdss.statement_processor import StatementProcessor, Source
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 
 
 class SimpleBalanceSheetProcessor(StatementProcessor):
 
     def __init__(self, stock_id):
         super().__init__(stock_id)
-        self.__simple_data_fetcher = _SimpleBalanceStatementsFetcher()
-        self.__balance_sheet_fetcher = _BalanceStatementsFetcher()
+        self.__simple_balance_repository = MongoDBRepository(MongoDBMeta.SIMPLE_BALANCE_SHEET)
+        self.__full_balance_repository = MongoDBRepository(MongoDBMeta.FULL_BALANCE_SHEET)
         self.__data_parser = _SimpleBalanceSheetParser()
 
     def get_data_frame(self, year, season, source_policy=Source.CACHE_ONLY):
         def dict_generator(raw_data, parser):
             return None if raw_data is None else parser(raw_data)
-        dict_simple_balance_sheet = dict_generator(self.get_simple_balance_sheet_raw_data(year, season),
-                                                   self.__parse_simple_balance_sheet)
-        dict_balance_sheet = dict_generator(self.get_balance_sheet_raw_data(year, season), self.parse_from_raw_data)
+
+        dict_simple_balance_sheet = dict_generator(
+            self.__simple_balance_repository.get_data(self._stock_id, {'year': year, 'season': season}),
+            self.__parse_simple_balance_sheet)
+        dict_balance_sheet = dict_generator(
+            self.__full_balance_repository.get_data(self._stock_id, {'year': year, 'season': season}),
+            self.parse_from_raw_data)
         if dict_simple_balance_sheet is None or dict_balance_sheet is None:
             return None
         else:
@@ -33,14 +35,6 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
             period_index = pd.PeriodIndex(start=pd.Period(str_period, freq='Q'), end=pd.Period(str_period, freq='Q'),
                                           freq='Q')
             return pd.DataFrame([dict_balance_sheet.values()], columns=dict_balance_sheet.keys(), index=period_index)
-
-    def get_simple_balance_sheet_raw_data(self, year, season):
-        raw_data = get_raw_data(PATH_DIR_RAW_DATA_SIMPLE_BALANCE_SHEETS + str(year) + "Q" + str(season), str(self._stock_id))
-        return raw_data
-
-    def get_balance_sheet_raw_data(self, year, season):
-        raw_data = get_raw_data(PATH_DIR_RAW_DATA_FULL_BALANCE_SHEETS + str(year) + "Q" + str(season), str(self._stock_id))
-        return raw_data
 
     def __parse_simple_balance_sheet(self, raw_input):
         table = self.get_simple_balance_sheet_table(raw_input)
