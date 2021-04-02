@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import traceback
 from enum import Enum
@@ -11,10 +12,12 @@ from selenium.webdriver import FirefoxProfile
 
 from data_processor import DataProcessor
 from rdss.fetch_data_utils import mongo_client, DB_TWSE, TABLE_TPEX_PRICE_MEASUREMENT, DB_TWSE_DATAFRAMES, \
-    TABLE_DATAFRAME_PRICE_MEASUREMENT, TABLE_TWSE_PRICE_MEASUREMENT
+    TABLE_DATAFRAME_PRICE_MEASUREMENT, TABLE_TWSE_PRICE_MEASUREMENT, __logger
 from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 from twse_crawler import gen_output_path
 
+
+_logger = logging.getLogger("twse.DataFetcher")
 
 class IndexType(Enum):
     INT_INDEX = 'int'
@@ -122,9 +125,10 @@ class TWSEPriceMeasurementTransformer:
 
     def transform_to_dataframe(self, stock_id):
         content = self.__in_repository.get_data(stock_id)
-        print(content['fields'])
+        # print(content['fields'])
         rows = []
         indexes = []
+        _logger.info("TWSEPriceMeasurementTransformer transform " + str(stock_id))
         for row_items in content['data']:
             row = [str(row_item).replace(',', '') for row_item in row_items]
             row[1] = int(row[1])
@@ -160,29 +164,35 @@ class TPEXPriceMeasurementTransformer:
         # collection = db[TABLE_TPEX_PRICE_MEASUREMENT]
         # record = collection.find_one({"stock_id": str(stock_id)})
         record = self.__in_repository.get_data(stock_id)
+        _logger.info("TWSEPriceMeasurementTransformer transform " + str(stock_id))
         if record is not None:
-            soup = BeautifulSoup(record, 'html.parser')
-            table = soup.find('table', attrs={"class": "page-table-board"})
-            rows = []
-            indexes = []
-            for tr in table.find_all('tr'):
-                if tr.find('td', attrs={"class": "page-table-body-center"}) is not None:
-                    tds = tr.find_all('td')
-                    row = [td.string.replace(',', '') for td in tds]
-                    row[0] = str(row[0])
-                    row[1] = int(row[1]) * 1000
-                    row[2] = int(row[2]) * 1000
-                    row[3] = int(row[3]) * 1000
-                    row[4] = float(row[4])
-                    row[6] = float(row[6])
-                    row[8] = float(row[8])
-                    indexes.append(row[0])
-                    rows.append(row[1:])
-            data_frame = pd.DataFrame(rows, index=indexes,
-                                      columns=['成交股數', '成交金額', '成交筆數', '最高價', '日期', '最低價', '日期', '收盤平均價'])
-            print(data_frame)
-            data_frame_json = data_frame.to_json(orient='split')
-            self.__out_repository.put_data(stock_id, data_frame_json)
+            try:
+                soup = BeautifulSoup(record, 'html.parser')
+                table = soup.find('table', attrs={"class": "page-table-board"})
+                rows = []
+                indexes = []
+                for tr in table.find_all('tr'):
+                    if tr.find('td', attrs={"class": "page-table-body-center"}) is not None:
+                        tds = tr.find_all('td')
+                        row = [td.string.replace(',', '') for td in tds]
+                        row[0] = str(row[0])
+                        row[1] = int(row[1]) * 1000
+                        row[2] = int(row[2]) * 1000
+                        row[3] = int(row[3]) * 1000
+                        row[4] = float(row[4])
+                        row[6] = float(row[6])
+                        row[8] = float(row[8])
+                        indexes.append(row[0])
+                        rows.append(row[1:])
+                        data_frame = pd.DataFrame(rows, index=indexes,
+                                                  columns=['成交股數', '成交金額', '成交筆數', '最高價', '日期', '最低價', '日期', '收盤平均價'])
+                        print(data_frame)
+                        data_frame_json = data_frame.to_json(orient='split')
+                        self.__out_repository.put_data(stock_id, data_frame_json)
+
+            except Exception as inst:
+                _logger.error("get exception in " + str(stock_id) + ":" + str(inst))
+                traceback.print_tb(inst.__traceback__)
             # db = mongo_client[DB_TWSE]
             # collection = db[TABLE_DATAFRAME_PRICE_MEASUREMENT]
             # collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {"data_frame": data_frame_json}},

@@ -28,6 +28,7 @@ PATH_DIR_RAW_DATA_DIVIDEND_POLICY = "out/raw_datas/dividend_policy"
 PATH_DIR_RAW_DATA_STOCK_COUNT = "out/raw_datas/stock_count/"
 PATH_DIR_RAW_DATA_CASH_FLOW = "out/raw_datas/cash_flow/"
 PATH_DIR_RAW_DATA_PRICE_MEASUREMENT = "out/raw_datas/price_measurement/"
+PATH_DIR_RAW_DATA_TPEX_PRICE_MEASUREMENT = "out/raw_datas/tpex_price_measurement"
 
 __balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t164sb03')
 __simple_balance_sheet_data_fetcher = DataFetcher('https://mops.twse.com.tw/mops/web/ajax_t163sb01')
@@ -191,8 +192,9 @@ def fetch_tpex_price_measurement_raw_datas(stock_ids):
     while index < len(stock_ids):
         stock_id = stock_ids[index]
         result = fetcher.fetch({'ajax': 'true', 'input_stock_code': str(stock_id)})
-        __tpex_price_measurement_repository.put_data(str(stock_id), result.content)
+        # __tpex_price_measurement_repository.put_data(str(stock_id), result.content)
         index += 1
+        store_raw_data(result.content, PATH_DIR_RAW_DATA_TPEX_PRICE_MEASUREMENT, str(stock_id))
         print('stock id ', stock_id, ' result = ', result.content)
 
 

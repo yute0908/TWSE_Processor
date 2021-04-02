@@ -2,7 +2,7 @@ import logging
 
 from evaluation_utils import get_stock_codes
 from rdss.fetch_data_utils import get_raw_data, DB_TWSE, mongo_client, PATH_DIR_RAW_DATA_STOCK_COUNT, TABLE_STOCK_COUNT, \
-    PATH_DIR_RAW_DATA_DIVIDEND_POLICY, TABLE_DIVIDEND_POLICY
+    PATH_DIR_RAW_DATA_DIVIDEND_POLICY, TABLE_DIVIDEND_POLICY, fetch_tpex_price_measurement_raw_datas
 from utils import get_time_lines, Offset
 from value_measurement import TPEXPriceMeasurementTransformer, TWSEPriceMeasurementTransformer
 
@@ -67,5 +67,5 @@ if __name__ == "__main__":
     tpex_code_list = get_stock_codes(stock_type='上櫃')
     for stock_id in twse_code_list:
         TWSEPriceMeasurementTransformer().transform_to_dataframe(stock_id)
-    for stock_id in tpex_code_list:
+    for stock_id in tpex_code_list[tpex_code_list]:
         TPEXPriceMeasurementTransformer().transform_to_dataframe(stock_id)
