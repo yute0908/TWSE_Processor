@@ -112,15 +112,16 @@ class MongoDBRepository(Repository):
     def get_data(self, stock_id, time_line=None):
         db = _mongo_client[self.meta.db]
         collection = db[self.meta.table]
+        print("repository get_data stock_id = ", stock_id, ' data', self.meta.name)
         if time_line is None:
-            print("repository 1")
+            print("repository get_data 1")
             record = collection.find_one({"stock_id": {"$eq": str(stock_id)}})
         elif time_line.get('season') is None:
-            print("repository 2 time_line = ", time_line)
+            print("repository get_data 2 time_line = ", time_line)
             record = collection.find_one({'$and': [{"stock_id": {"$eq": str(stock_id)}},
                                                    {"time_line": {"$eq": {'year': time_line['year']}}}]})
         else:
-            print("repository 3 stock_id = ", stock_id, ' year = ', time_line['year'], ' season = ', time_line['season'])
+            print("repository get_data 3 time_line = ", time_line)
             record = collection.find_one({'$and': [{"stock_id": {"$eq": str(stock_id)}},
                                                    {"time_line": {"$eq": {'year': time_line['year'],
                                                                           'season': time_line['season']}}}]})
@@ -134,6 +135,7 @@ class MongoDBRepository(Repository):
         if content is None:
             return
 
+        print("repository put_data stock_id = ", stock_id, ' data', self.meta.name)
         content = self.__transformer.out_transform(content)
         if time_line is None:
             collection.find_one_and_update({'stock_id': str(stock_id)}, {'$set': {self.meta.data_type.value: content}},

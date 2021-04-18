@@ -1,5 +1,4 @@
 import unittest
-from urllib.parse import urlencode
 
 import pandas as pd
 import requests
@@ -8,10 +7,10 @@ from bs4 import BeautifulSoup
 import roe_utils
 from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_predict_evaluate, \
     get_stock_codes, sync_data, get_cash_flow_per_share_recent, \
-    get_stock_data, get_matrix_value, resync_for_dividend_policy, \
-    _sync_performance, get_stock_list
+    get_stock_data, get_matrix_value, resync_for_dividend_policy
 from evaluation_utils2 import _sync_dividend_policy, sync_statements, sync_performance, generate_predictions, \
-    Option, _sync_cash_flow_statement, _sync_profit_statement, _sync_balance_sheet
+    Option, _sync_cash_flow_statement, _sync_profit_statement, _sync_balance_sheet, _sync_statements_with_repository, \
+    _sync_performance
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -24,7 +23,6 @@ from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
 from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
-from stock_data import read
 from tsec.crawl import Crawler
 from twse_crawler import gen_output_path
 from utils import get_recent_seasons
@@ -146,7 +144,7 @@ class MainTest(unittest.TestCase):
         print(data_frame)
 
     def test_sync_dividend_policy(self):
-        _sync_dividend_policy(str(2330), 2013)
+        _sync_dividend_policy(str(2929), 2013)
         # dividend_policy_processor = DividendPolicyProcessor2()
         # df_dividend_policy = dividend_policy_processor.get_data_frames(stock_id=str(2330), start_year=2012)
 
@@ -247,8 +245,7 @@ class MainTest(unittest.TestCase):
         # sync_data(1101)
 
     def test_sync_performance(self):
-        stock_data = read(str(1101))
-        _sync_performance(1101, stock_data.df_statement)
+        _sync_performance(1580)
 
     def test_sync_performance2(self):
         # _sync_statements(8013)
@@ -280,7 +277,7 @@ class MainTest(unittest.TestCase):
         # '''
 
         # '''
-        df_profit_statement_before = _sync_profit_statement(1101, 2014, to_year=2019)
+        df_profit_statement_before = _sync_profit_statement(1101, 2013, to_year=2019)
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PROFIT_STATEMENT)
         db_repository.put_data(1101, df_profit_statement_before)
         data_frame = db_repository.get_data(1101)
@@ -299,19 +296,25 @@ class MainTest(unittest.TestCase):
         # '''
         df_dividend_before = _sync_dividend_policy(1101, 2013)
         print(df_dividend_before)
+        print(df_dividend_before.index)
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_DIVIDEND_POLICY)
         db_repository.put_data(1101, df_dividend_before)
         data_frame = db_repository.get_data(1101)
         print(data_frame)
         print(data_frame.index)
         # '''
+        # '''
         df_dividend_before = _sync_dividend_policy(1240, 2013)
         print(df_dividend_before)
+        print(type(df_dividend_before.index))
+        self.assertIsInstance(df_dividend_before.index, pd.PeriodIndex)
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_DIVIDEND_POLICY)
         db_repository.put_data(1240, df_dividend_before)
         data_frame = db_repository.get_data(1240)
         print(data_frame)
         print(data_frame.index)
+        self.assertIsInstance(data_frame.index, pd.PeriodIndex)
+        # '''
 
     def test_sync_statements(self):
         # '''
@@ -330,8 +333,8 @@ class MainTest(unittest.TestCase):
         # '''
         # '''
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_BALANCE_SHEET)
-        data_frame_before = db_repository.get_data(1101)
-        data_frame_after = _sync_balance_sheet(1101, 2014, df_balance_sheet=data_frame_before)
+        data_frame_before = db_repository.get_data(2929)
+        data_frame_after = _sync_balance_sheet(2929, 2013, 2019, df_balance_sheet=data_frame_before)
         print('before = ', data_frame_before)
         print('after = ', data_frame_after)
         # '''
@@ -445,21 +448,7 @@ class MainTest(unittest.TestCase):
         print('count of errors before = ', len(error_ids), ' after = ', len(error_ids_after))
 
     def test_sync(self):
-        # sync_statements([2330])
-        # stock_id = 2330
-        # df_statements = _read_df_datas(stock_id)
-        # before = df_statements['dividend_policy']
-        # df_statements['dividend_policy'] = _sync_dividend_policy(2013, stock_id, df_statements.get('dividend_policy', None))
-        # print('before = ', before)
-        # print('after = ', df_statements['dividend_policy'])
-        # before = df_statements['profit_statement']
-        # df_statements['profit_statement'] = _sync_profit_statement(2013, stock_id, df_statements.get('profit_statement', None))
-        # print('before = ', before)
-        # print('after = ', df_statements['profit_statement'])
-        df_stock_list = get_stock_list(stock_type='上市')
-        df_stock_list['公司代號'] = df_stock_list['公司代號'].map(lambda stock_id: str(stock_id))
-        df_stock_list = df_stock_list.set_index('公司代號')
-        print(df_stock_list.loc['2330', :])
+        _sync_statements_with_repository(1580)
 
     def test_tsec_crawler(self):
         crawler = Crawler()

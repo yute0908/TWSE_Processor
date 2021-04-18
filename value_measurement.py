@@ -15,7 +15,8 @@ from data_processor import DataProcessor
 from rdss.fetch_data_utils import mongo_client, DB_TWSE, TABLE_TPEX_PRICE_MEASUREMENT, DB_TWSE_DATAFRAMES, \
     TABLE_DATAFRAME_PRICE_MEASUREMENT, TABLE_TWSE_PRICE_MEASUREMENT, __logger, fetch_twse_price_measurement_raw_datas, \
     fetch_tpex_price_measurement_raw_datas
-from repository.mongodb_repository import MongoDBRepository, MongoDBMeta, Transformer, default_data_frame_out_transform
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta, Transformer, default_data_frame_out_transform, \
+    yearly_period_data_frame_in_transform
 from twse_crawler import gen_output_path
 
 
@@ -110,7 +111,7 @@ def __data_frame_in_transform(content):
     return new_data_frame
 
 
-__data_frame_repository_transformer = Transformer(in_transform=__data_frame_in_transform,
+__data_frame_repository_transformer = Transformer(in_transform=yearly_period_data_frame_in_transform,
                                                   out_transform=default_data_frame_out_transform)
 _data_frame_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PRICE_MEASUREMENT,
                                            transformer=__data_frame_repository_transformer)
@@ -162,7 +163,7 @@ class TWSEPriceMeasurementTransformer:
             row[4] = float(row[4])
             row[6] = float(row[6])
             row[8] = float(row[8])
-            indexes.append(int(row[0]) + 1911)
+            indexes.append(pd.Period(value=str(int(row[0]) + 1911)))
             rows.append(row[1:])
         data_frame = pd.DataFrame(rows, index=indexes,
                                   columns=['成交股數', '成交金額', '成交筆數', '最高價', '日期', '最低價', '日期', '收盤平均價'])
@@ -207,7 +208,7 @@ class TPEXPriceMeasurementTransformer:
                         row[4] = float(row[4])
                         row[6] = float(row[6])
                         row[8] = float(row[8])
-                        indexes.append(str(row[0]))
+                        indexes.append(pd.Period(str(row[0])))
                         rows.append(row[1:])
                 data_frame = pd.DataFrame(rows, index=indexes,
                                           columns=['成交股數', '成交金額', '成交筆數', '最高價', '日期', '最低價', '日期', '收盤平均價'])

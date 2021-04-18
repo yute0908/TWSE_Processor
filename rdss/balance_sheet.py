@@ -35,12 +35,14 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
         dict_simple_balance_sheet = dict_generator(simple_balance_sheet_raw_data, self.__parse_simple_balance_sheet)
         dict_balance_sheet = dict_generator(balance_sheet_raw_data, self.__parse_full_balance_sheet)
         if dict_simple_balance_sheet is None or dict_balance_sheet is None:
+            print('SimpleBalanceSheetProcessor - get_data_frame year = ', year, ' season = ', season, ' result is null')
             return None
         else:
             dict_balance_sheet.update(dict_simple_balance_sheet)
             str_period = "{}Q{}".format(year, season)
             period_index = pd.PeriodIndex(start=pd.Period(str_period, freq='Q'), end=pd.Period(str_period, freq='Q'),
                                           freq='Q')
+            print('SimpleBalanceSheetProcessor - get_data_frame year = ', year, ' season = ', season, ' result is not null')
             return pd.DataFrame([dict_balance_sheet.values()], columns=dict_balance_sheet.keys(), index=period_index)
 
     def __parse_simple_balance_sheet(self, raw_input):

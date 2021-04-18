@@ -14,10 +14,16 @@ from rdss.dividend_policy2 import DividendPolicyProcessor2
 from rdss.shareholder_equity import ShareholderEquityProcessor
 from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
+from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 from stock_data import store_df, read_dfs
 from twse_crawler import gen_output_path
 from utils import get_time_lines
 from value_measurement import PriceMeasurementProcessor2
+
+_cash_flow_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_CASH_FLOW)
+_profit_statement_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PROFIT_STATEMENT)
+_balance_sheet_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_BALANCE_SHEET)
+_dividend_policy_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_DIVIDEND_POLICY)
 
 
 class Option(enum.IntEnum):
@@ -32,6 +38,8 @@ def sync_statements(stock_codes, times_to_retry=10, break_after_retry=True, opti
     print('stock_codes = ', stock_codes)
     retry = 0
     for stock_code in stock_codes:
+        _sync_statements_with_repository(stock_code)
+        '''
         get_data = False
         while get_data is False:
             try:
@@ -50,7 +58,7 @@ def sync_statements(stock_codes, times_to_retry=10, break_after_retry=True, opti
                     get_data = True
                 else:
                     time.sleep(60 * 10)
-
+        '''
 
 def sync_performance(stock_codes):
     error_ids = []
@@ -206,14 +214,22 @@ def _transform_matrix_value(matrix_levels=None):
 
 
 def _sync_performance(stock_id):
-    df_statements = _read_df_datas(stock_id)
-    df_balance_sheet = _normalize_balance_sheet(df_statements)
-    df_profit_statement = df_statements['profit_statement']
-    df_cash_flow_statement = df_statements['cash_flow_statement']
-    df_dividend_policy = df_statements['dividend_policy']
+    # df_statements = _read_df_datas(stock_id)
+    # df_balance_sheet = _normalize_balance_sheet(df_statements)
+    # df_profit_statement = df_statements['profit_statement']
+    # df_cash_flow_statement = df_statements['cash_flow_statement']
+    # df_dividend_policy = df_statements['dividend_policy']
+    df_balance_sheet = _balance_sheet_repository.get_data(stock_id)
+    df_profit_statement = _profit_statement_repository.get_data(stock_id)
+    df_cash_flow_statement = _cash_flow_repository.get_data(stock_id).sort_index()
+    df_dividend_policy = _dividend_policy_repository.get_data(stock_id)
+    print('df_profit_statement columns ', df_profit_statement.columns)
     print('df_profit_statement', df_profit_statement)
-    print('df_balance_sheet = ', df_balance_sheet)
+    print('df_balance_sheet columns ', df_balance_sheet.columns)
+    print('df_balance_sheet ', df_balance_sheet)
+    print('df_cash_flow_statement columns', df_cash_flow_statement.columns)
     print('df_cash_flow_statement', df_cash_flow_statement)
+    print('df_dividend_policy columns', df_dividend_policy.columns)
     print('df_dividend_policy', df_dividend_policy)
     now = datetime.now()
     start_year = max(df_dividend_policy.index.values[0].year + 1, 2014)
@@ -233,27 +249,39 @@ def _sync_performance(stock_id):
         growth_ratio_of_eps = avg_roe_two_years * (1 - dividend_ratio_two_years)
         first_q = '{}Q{}'.format(year, 1)
         fourth_q = '{}Q{}'.format(year, 4)
+        if len(df_balance_sheet[first_q][('權益總額', '期初餘額')].values) == 0 or len(df_balance_sheet[fourth_q][('權益總額', '期末餘額')].values) == 0:
+            continue
         profit = df_profit_statement.loc[first_q: fourth_q, '稅後淨利'].sum()
         profits[year] = profit
-        shareholder_equity = ((df_balance_sheet.loc[first_q, '(權益總額, 期初餘額)'] + df_balance_sheet.loc[
-            fourth_q, '(權益總額, 期末餘額)']) / 2)
+        print(df_balance_sheet[first_q][('權益總額', '期初餘額')].loc[first_q])
+        print(len(df_balance_sheet[fourth_q][('權益總額', '期末餘額')].values))
+        shareholder_equity = ((df_balance_sheet[first_q][('權益總額', '期初餘額')].loc[first_q] + df_balance_sheet[
+            fourth_q][('權益總額', '期末餘額')].loc[fourth_q]) / 2)
         roe = profit / shareholder_equity
-
-        cash_flow_per_share = df_cash_flow_statement.loc[fourth_q: first_q, '業主盈餘現金流'].sum() / df_dividend_policy.loc[
+        cash_flow_per_share = df_cash_flow_statement.loc[first_q: fourth_q, '業主盈餘現金流'].sum() / df_dividend_policy.loc[
             str(year), '股數']
         try:
-            dividend_yield = dividend_ratio_two_years / 2 / float(df_dividend_policy.loc[str(year), '平均股價'])
+            dividend_ratio = float(df_dividend_policy.loc[str(year), '現金股利']) / float(df_dividend_policy.loc[str(year), '收盤平均價'])
+        except Exception as e:
+            print('get', e, ' when get price for ', ' in ', year)
+            dividend_ratio = float(0)
+        try:
+            dividend_yield = dividend_ratio_two_years / 2 / float(df_dividend_policy.loc[str(year), '收盤平均價'])
         except Exception as e:
             print('get', e, ' when get price for ', ' in ', year)
             dividend_yield = float(0)
         dict_result = {'兩年現金股利發放率': dividend_ratio_two_years, '兩年平均ROE': avg_roe_two_years,
                        '保留盈餘成長率': growth_ratio_of_eps,
-                       '現金股利殖利率': dividend_yield, '高登模型預期報酬率': growth_ratio_of_eps + dividend_yield,
+                       '現金股利殖利率': dividend_ratio, '高登模型預期報酬率': growth_ratio_of_eps + dividend_yield,
                        '兩年平均現金股利': dividend_in_two_years, 'ROE': roe, '每股業主盈餘現金流': cash_flow_per_share,
                        '矩陣等級': _get_matrix_level(roe, cash_flow_per_share)}
-        dfs_result.append(pd.DataFrame([dict_result.values()], columns=dict_result.keys(),
+        data_frame = pd.DataFrame([dict_result.values()], columns=dict_result.keys(),
                                        index=pd.PeriodIndex(start=pd.Period(year, freq='Y'),
-                                                            end=pd.Period(year, freq='Y'), freq='Y')))
+                                                            end=pd.Period(year, freq='Y'), freq='Y'))
+        print(stock_id, ' ', year, ' dict_result = ', dict_result)
+        print(stock_id, ' ', year, 'has nan = ', data_frame.isnull().values.any())
+        if not(data_frame.isnull().values.any()):
+            dfs_result.append(data_frame)
         # results_index.append(pd.PeriodIndex(start=pd.Period(year, freq='Y'), end=pd.Period(year, freq='Y'), freq='Y'))
         # results_data.append()
     # print('results_index = ', results_index)
@@ -261,8 +289,9 @@ def _sync_performance(stock_id):
     # df_performance = pd.DataFrame(results_data, index=results_index)
     print('profits = ', profits)
     df_performance = pd.concat(dfs_result, sort=True) if len(dfs_result) > 0 else None
-    df_statements['performance'] = df_performance
-    store_df(stock_id, df_statements, filename='statments_{0}.xlsx'.format(stock_id))
+    print(stock_id, ' df_performance = ', df_performance)
+    # df_statements['performance'] = df_performance
+    # store_df(stock_id, df_statements, filename='statments_{0}.xlsx'.format(stock_id))
     return df_performance
 
 
@@ -284,6 +313,25 @@ def _get_matrix_level(roe, cash_flow_per_share):
         return "C1" if cash_flow_per_share > 0 else "C2"
     return "D"
 
+
+def _sync_statements_with_repository(stock_id):
+    start_year = 2013
+    profit_statement = _sync_profit_statement(stock_id, start_year, df_profit_statement=_profit_statement_repository.get_data(stock_id))
+    _profit_statement_repository.put_data(stock_id, profit_statement)
+
+    balance_sheet = _sync_balance_sheet(stock_id, start_year, df_balance_sheet=_balance_sheet_repository.get_data(stock_id))
+    _balance_sheet_repository.put_data(stock_id, balance_sheet)
+
+    cash_flow = _sync_cash_flow_statement(stock_id, start_year, df_cash_flow_statement=_cash_flow_repository.get_data(stock_id))
+    _cash_flow_repository.put_data(stock_id, cash_flow)
+
+    dividend_policy = _sync_dividend_policy(stock_id, start_year)
+    _dividend_policy_repository.put_data(stock_id, dividend_policy)
+
+    print('profit_statement = ', profit_statement)
+    print('balance_sheet = ', balance_sheet)
+    print('cash_flow_statement = ', cash_flow)
+    print('dividend policy = ', dividend_policy)
 
 def _sync_statements(stock_id, option=Option.ALL, isSync=True):
     start_year = 2013
@@ -420,7 +468,10 @@ def _sync_dividend_policy(stock_id, start_year, df_dividend_policy=None):
         print('df_prices = ', df_prices)
         if df_stock_count is None or df_dividend_policy is None or df_prices is None:
             return None
-        df_combine = df_dividend_policy.join(df_stock_count, how='outer').join(df_prices, how='outer')
+
+        df_combine = df_dividend_policy.join(df_stock_count, how='outer')
+        print('df_combine 1 = ', df_combine)
+        df_combine = df_combine.join(df_prices, how='outer')
         indexes_to_drop = df_combine[df_combine['股數'].isna()].index
         df_combine.drop(indexes_to_drop, inplace=True)
         print('合併 = ', df_combine)

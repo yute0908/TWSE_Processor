@@ -31,7 +31,7 @@ class ShareholderEquityProcessor(StatementProcessor):
         for time_line in time_lines:
             result = self._get_data_dict(time_line.get('year'), time_line.get('season'))
             if result is None:
-                break
+                continue
             if last_result is not None:
                 for key in result.keys():
                     result[key]['期初餘額'] = last_result[key]['期末餘額']
