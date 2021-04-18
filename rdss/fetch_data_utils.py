@@ -4,6 +4,7 @@ import time
 import traceback
 from datetime import datetime
 from os import path
+from random import randint
 from urllib.parse import urlencode
 from urllib.request import urlopen, ProxyHandler, build_opener, install_opener, Request
 
@@ -109,6 +110,7 @@ def fetch_stock_count_raw_datas(stock_ids, since_year=datetime.now().year, to_ye
 
 class TorHandler:
     def __init__(self):
+
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'}
 
@@ -155,34 +157,37 @@ class TorHandler:
 def fetch_twse_price_measurement_raw_datas(stock_ids):
     tor_handler = TorHandler()
     session = requests.session()
-    session.proxies = {'http': 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
+    # session.proxies = {'http': 'socks5h://localhost:9050', 'https': 'socks5h://localhost:9050'}
 
     # Cycle through the specified number of IP addresses via TOR
     index = 0
 
     # for stock_id in stock_ids:
-    tor_handler.renew_connection()
+    # tor_handler.renew_connection()
 
     while index < len(stock_ids):
         stock_id = stock_ids[index]
+        result_json = None
+        delay_time = randint(6, 35)
+        print("fetch_twse_price_measurement_raw_data wait ", delay_time)
+        time.sleep(delay_time)
         try:
             # ip = session.get("http://icanhazip.com").text
             # print('My IP: {}'.format(ip))
             result = session.request(method='GET', url="https://www.twse.com.tw/exchangeReport/FMNPTK",
                                      params={"response": "json", "stockNo": str(stock_id)},
-                                     headers={'Connection': 'close'}, timeout=10)
+                                     headers={'Connection': 'close'},
+                                     timeout=10)
             print('stock_id = ', stock_id, ' success = ', result.ok)
-            print('content = ', result.content)
-            print('json = ', result.json())
+            print('content = ', result.text)
+            result_json = result.json()
         except Exception as inst:
             __logger.error("get exception in " + str(stock_id) + ":" + str(inst))
             traceback.print_tb(inst.__traceback__)
             result = None
 
-        if result is None or not result.ok:
-            tor_handler.renew_connection()
-        else:
-            __twse_price_measurement_repository.put_data(str(stock_id), result.json())
+        if not(result is None or not result.ok):
+            __twse_price_measurement_repository.put_data(str(stock_id), result_json)
             index += 1
 
 
@@ -192,10 +197,10 @@ def fetch_tpex_price_measurement_raw_datas(stock_ids):
     while index < len(stock_ids):
         stock_id = stock_ids[index]
         result = fetcher.fetch({'ajax': 'true', 'input_stock_code': str(stock_id)})
-        # __tpex_price_measurement_repository.put_data(str(stock_id), result.content)
+        __tpex_price_measurement_repository.put_data(str(stock_id), result.content)
         index += 1
-        store_raw_data(result.content, PATH_DIR_RAW_DATA_TPEX_PRICE_MEASUREMENT, str(stock_id))
-        print('stock id ', stock_id, ' result = ', result.content)
+        # store_raw_data(result.content, PATH_DIR_RAW_DATA_TPEX_PRICE_MEASUREMENT, str(stock_id))
+        print('stock id ', stock_id, ' result = ', result.text)
 
 
 def fetch_price_measurement_raw_datas(stock_ids):

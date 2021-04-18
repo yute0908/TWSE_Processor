@@ -4,6 +4,7 @@ from functools import reduce
 import pandas as pd
 from bs4 import BeautifulSoup
 
+from rdss.fetch_data_utils import fetch_simple_balance_sheet_raw_data, fetch_balance_sheet_raw_data
 from rdss.parsers import DataFrameParser
 from rdss.statement_processor import StatementProcessor, Source
 from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
@@ -21,12 +22,18 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
         def dict_generator(raw_data, parser):
             return None if raw_data is None else parser(raw_data)
 
-        dict_simple_balance_sheet = dict_generator(
-            self.__simple_balance_repository.get_data(self._stock_id, {'year': year, 'season': season}),
-            self.__parse_simple_balance_sheet)
-        dict_balance_sheet = dict_generator(
-            self.__full_balance_repository.get_data(self._stock_id, {'year': year, 'season': season}),
-            self.parse_from_raw_data)
+        simple_balance_sheet_raw_data = self.__simple_balance_repository.get_data(self._stock_id, {'year': year, 'season': season})
+        if simple_balance_sheet_raw_data is None:
+            fetch_simple_balance_sheet_raw_data(self._stock_id, year, season)
+            simple_balance_sheet_raw_data = self.__simple_balance_repository.get_data(self._stock_id, {'year': year, 'season': season})
+
+        balance_sheet_raw_data = self.__full_balance_repository.get_data(self._stock_id, {'year': year, 'season': season})
+        if balance_sheet_raw_data is None:
+            fetch_balance_sheet_raw_data(self._stock_id, year, season)
+            balance_sheet_raw_data = self.__full_balance_repository.get_data(self._stock_id, {'year': year, 'season': season})
+
+        dict_simple_balance_sheet = dict_generator(simple_balance_sheet_raw_data, self.__parse_simple_balance_sheet)
+        dict_balance_sheet = dict_generator(balance_sheet_raw_data, self.__parse_full_balance_sheet)
         if dict_simple_balance_sheet is None or dict_balance_sheet is None:
             return None
         else:
@@ -63,12 +70,12 @@ class SimpleBalanceSheetProcessor(StatementProcessor):
             print("get exception", inst)
             traceback.print_tb(inst.__traceback__)
 
-    def parse_from_raw_data(self, raw_input):
+    def __parse_full_balance_sheet(self, raw_input):
         table = self.get_balance_sheet_table(raw_input)
         dict_datas = {}
         fields_long_term_investment = ['採用權益法之投資', '採用權益法之投資淨額', '透過損益按公允價值衡量之金融資產－非流動', '持有至到期日金融資產－非流動淨額',
                                        '以成本衡量之金融資產－非流動淨額']
-        fields_property = ['不動產、廠房及設備', '不動產、廠房及設備淨額', '不動產及設備合計']
+        fields_property = ['不動產、廠房及設備', '不動產、廠房及設備淨額', '不動產及設備合計', '不動產及設備－淨額']
         try:
             rows = table.find_all('tr')
             trs = [[x.get_text().strip() for x in row.find_all('td')] for row in rows]

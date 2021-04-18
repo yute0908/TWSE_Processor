@@ -3,6 +3,7 @@ import traceback
 import pandas as pd
 from bs4 import BeautifulSoup
 
+from rdss.fetch_data_utils import fetch_simple_balance_sheet_raw_data
 from rdss.parsers import DataFrameParser
 from rdss.statement_processor import Source
 from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
@@ -50,7 +51,10 @@ class SimpleIncomeStatementProcessor:
         #     return None
         try:
             dict_datas = {}
-            raw_data = self.__repository.get_data(str(stock_id), {'year': year, 'season': season})
+            raw_data = self.__repository.get_data(stock_id, {'year': year, 'season': season})
+            if raw_data is None:
+                fetch_simple_balance_sheet_raw_data(stock_id, year, season)
+                raw_data = self.__repository.get_data(stock_id, {'year': year, 'season': season})
             bs = BeautifulSoup(raw_data, 'html.parser')
             tables = bs.find_all('table', attrs={"class": "hasBorder", "align": "center", "width": "70%"})
             table = tables[2]

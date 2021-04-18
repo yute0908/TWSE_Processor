@@ -3,8 +3,9 @@ import traceback
 
 from bs4 import BeautifulSoup
 
+from rdss.fetch_data_utils import fetch_shareholder_equity_raw_data
 from rdss.fetcher import DataFetcher
-from rdss.statement_processor import StatementProcessor
+from rdss.statement_processor import StatementProcessor, Source
 from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 from utils import get_time_lines
 
@@ -19,7 +20,7 @@ class ShareholderEquityProcessor(StatementProcessor):
         self.items_to_get = ('期初餘額', '期末餘額')
         self.fields_to_get = ('權益總額',)
 
-    def get_data_frames(self, since, to=None):
+    def get_data_frames(self, since, to=None, source_policy=Source.CACHE_ONLY):
         time_lines = get_time_lines(since=since, to=to)
         dfs = []
         column_index = pd.MultiIndex.from_product([self.fields_to_get, self.items_to_get], names=['first', 'second'])
@@ -54,6 +55,9 @@ class ShareholderEquityProcessor(StatementProcessor):
 
     def _get_data_dict(self, year, season):
         raw_data = self.__repository.get_data(self._stock_id, {'year': year, 'season': season})
+        if raw_data is None:
+            fetch_shareholder_equity_raw_data(self._stock_id, year, season)
+            raw_data = self.__repository.get_data(self._stock_id, {'year': year, 'season': season})
         if raw_data is not None:
             return self._parse_data(raw_data)
 

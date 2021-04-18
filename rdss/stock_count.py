@@ -3,6 +3,7 @@ from datetime import datetime
 import pandas as pd
 from bs4 import BeautifulSoup
 
+from rdss.fetch_data_utils import fetch_stock_count_raw_data
 from repository.mongodb_repository import MongoDBRepository, MongoDBMeta
 
 
@@ -13,6 +14,9 @@ class StockCountProcessor:
 
     def get_stock_count(self, stock_id, year):
         raw_data = self.__repository.get_data(stock_id, {'year': year})
+        if raw_data is None:
+            fetch_stock_count_raw_data(stock_id, year, year)
+            raw_data = self.__repository.get_data(stock_id, {'year': year})
         if raw_data is None:
             return None
         bs = BeautifulSoup(raw_data, 'html.parser')

@@ -1,3 +1,4 @@
+import itertools
 from datetime import datetime
 
 import pandas as pd
@@ -19,13 +20,14 @@ class DividendPolicyProcessor2(StatementProcessor):
         pass
 
     def get_data_frames(self, stock_id, start_year=datetime.now().year, to_year=datetime.now().year):
-        return self._parse_raw_data(stock_id=stock_id, raw_data=self._get_raw_data(stock_id, start_year, to_year))
+        return self._parse_raw_data(stock_id=stock_id, raw_data=self._get_raw_data(stock_id))
 
     def _parse_raw_data(self, stock_id, raw_data):
         try:
             soup = BeautifulSoup(raw_data, 'html.parser')
             table = soup.find('table', attrs={"class": "hasBorder", "width": "99%"})
             data_frame = pd.read_html(str(table))[0]
+            print('dividend data_frame = ', data_frame)
         except Exception as e:
             print('get', e, ' when get dividend policy')
             return None
@@ -50,6 +52,7 @@ class DividendPolicyProcessor2(StatementProcessor):
         dividend_cash_list = [value[0] for value in parse_dict.values()]
         dividend_cash_stock_list = [value[1] for value in parse_dict.values()]
         dict_dividend = {'現金股利': dividend_cash_list, '配股': dividend_cash_stock_list}
+        print(dict_dividend)
 
         now = datetime.now()
 
@@ -61,18 +64,24 @@ class DividendPolicyProcessor2(StatementProcessor):
             return periods
 
         df_dividend = pd.DataFrame(dict_dividend, index=period_list).reindex(get_default_time_line_periods()).applymap(
-            lambda x: float(0) if pd.isnull(x) else x)
+            lambda x: pd.np.nan if pd.isnull(x) else x)
+        print('df_dividend = ', df_dividend)
         dic_dividend = {}
         for year in range(2013, now.year + 1):
-            dic_dividend[pd.Period(year)] = df_dividend.loc[pd.Period(str(year) + 'Q1'):pd.Period(str(year) + 'Q4'),
-                                            :].sum()
+            df_extract = df_dividend.loc[pd.Period(str(year) + 'Q1'):pd.Period(str(year) + 'Q4'),:]
+            df_extract_sum = df_dividend.loc[pd.Period(str(year) + 'Q1'):pd.Period(str(year) + 'Q4'),:].sum()
+
+            isnan = all(pd.np.isnan(ele) for ele in list(itertools.chain(*df_extract.values)))
+            dic_dividend[pd.Period(year)] = [pd.np.nan for ele in df_extract_sum] if isnan else df_extract_sum
+
+        print('df_dividend 2 = ', dic_dividend)
         print("\n")
         df_dividend = pd.DataFrame(dic_dividend)
         df_dividend = df_dividend.T
-        print('df_dividend = ', df_dividend)
+        print('df_dividend 3 = ', df_dividend)
         return df_dividend
 
-    def _get_raw_data(self, stock_id, since, to):
+    def _get_raw_data(self, stock_id):
         # result = self.dividend_policy_fetcher.fetch(
         #     {'stock_id': stock_id, 'start_year': since - 1911, 'to_year': to - 1911})
         # if result.ok is False:

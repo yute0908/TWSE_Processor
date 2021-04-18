@@ -4,7 +4,7 @@ import traceback
 from bs4 import BeautifulSoup
 from idna import unicode
 
-from rdss.fetch_data_utils import PATH_DIR_RAW_DATA_CASH_FLOW, get_raw_data
+from rdss.fetch_data_utils import PATH_DIR_RAW_DATA_CASH_FLOW, get_raw_data, fetch_cash_flow_raw_data
 from rdss.fetcher import DataFetcher
 from rdss.statement_processor import StatementProcessor, Source
 from repository.mongodb_repository import MongoDBMeta, MongoDBRepository
@@ -74,7 +74,10 @@ class CashFlowStatementProcessor(StatementProcessor):
         data_dict = {}
         try:
             raw_data = self.__repository.get_data(str(self._stock_id), {'year': year, 'season': season})
-            raw_data = get_raw_data(PATH_DIR_RAW_DATA_CASH_FLOW + str(year) + "Q" + str(season), str(self._stock_id))
+            if raw_data is None:
+                fetch_cash_flow_raw_data(self._stock_id, year, season)
+                raw_data = self.__repository.get_data(str(self._stock_id), {'year': year, 'season': season})
+            # raw_data = get_raw_data(PATH_DIR_RAW_DATA_CASH_FLOW + str(year) + "Q" + str(season), str(self._stock_id))
             bs = BeautifulSoup(raw_data, 'html.parser')
             table = bs.find_all('table', attrs={"class": "hasBorder", "align": "center"})
             #print(table[0].prettify())

@@ -10,15 +10,14 @@ import pandas as pd
 from evaluation_utils import get_stock_list
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
-from rdss.dividend_policy import DividendPolicyProcessor
 from rdss.dividend_policy2 import DividendPolicyProcessor2
-from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.shareholder_equity import ShareholderEquityProcessor
+from rdss.statement_fetchers import SimpleIncomeStatementProcessor
 from rdss.stock_count import StockCountProcessor
 from stock_data import store_df, read_dfs
 from twse_crawler import gen_output_path
 from utils import get_time_lines
-from value_measurement import PriceMeasurementProcessor, IndexType
+from value_measurement import PriceMeasurementProcessor2
 
 
 class Option(enum.IntEnum):
@@ -289,22 +288,22 @@ def _get_matrix_level(roe, cash_flow_per_share):
 def _sync_statements(stock_id, option=Option.ALL, isSync=True):
     start_year = 2013
     df_statements = _read_df_datas(stock_id)
-    df_profit_statement = _sync_profit_statement(start_year, stock_id,
+    df_profit_statement = _sync_profit_statement(stock_id, start_year,
                                                  df_profit_statement=df_statements.get('profit_statement',
                                                                                        None) if isSync else None) \
         if (option & Option.PROFIT_STATEMENT) > 0 else df_statements.get('profit_statement', None)
 
-    df_balance_sheet = _sync_balance_sheet(start_year, stock_id,
+    df_balance_sheet = _sync_balance_sheet(stock_id, start_year,
                                            df_balance_sheet=df_statements.get('balance_sheet',
                                                                               None) if isSync else None) \
         if (option & Option.BALANCE_SHEET > 0) else df_statements.get('balance_sheet', None)
 
-    df_cash_flow_statement = _sync_cash_flow_statement(start_year, stock_id,
+    df_cash_flow_statement = _sync_cash_flow_statement(stock_id, start_year,
                                                        df_cash_flow_statement=df_statements.get('cash_flow_statement',
                                                                                                 None) if isSync else None)\
         if (option & Option.CASH_FLOW_STATEMENT) > 0 else df_statements.get('cash_flow_statement', None)
 
-    df_dividend_policy = _sync_dividend_policy(start_year, stock_id,
+    df_dividend_policy = _sync_dividend_policy(stock_id, start_year,
                                                df_dividend_policy=df_statements.get('dividend_policy', None) if isSync else None)\
         if (option & Option.DIVIDEND_POLICY) > 0 else df_statements.get('dividend_policy', None)
 
@@ -322,12 +321,13 @@ def _sync_statements(stock_id, option=Option.ALL, isSync=True):
              filename='statments_{0}.xlsx'.format(stock_id))
 
 
-def _sync_cash_flow_statement(start_year, stock_id, df_cash_flow_statement=None):
+def _sync_cash_flow_statement(stock_id, start_year, to_year=None, df_cash_flow_statement=None):
     cash_flow_processor = CashFlowStatementProcessor(stock_id)
+    to = {'year': to_year} if to_year is not None else None
     if df_cash_flow_statement is None:
-        df_cash_flow_statement = cash_flow_processor.get_data_frames({'year': start_year - 1})
+        df_cash_flow_statement = cash_flow_processor.get_data_frames({'year': start_year - 1}, to=to)
     else:
-        time_lines = get_time_lines(since={'year': start_year})
+        time_lines = get_time_lines(since={'year': start_year}, to=to)
         dfs_get = []
         index_string_list = df_cash_flow_statement.index.map(str).values.tolist()
         for time_line in time_lines:
@@ -344,11 +344,12 @@ def _sync_cash_flow_statement(start_year, stock_id, df_cash_flow_statement=None)
     return df_cash_flow_statement
 
 
-def _sync_balance_sheet(start_year, stock_id, df_balance_sheet=None):
+def _sync_balance_sheet(stock_id, start_year, to_year=None, df_balance_sheet=None):
+    to = {'year': to_year} if to_year is not None else None
     balance_sheet_processor = SimpleBalanceSheetProcessor(stock_id)
     shareholder_equity_processor = ShareholderEquityProcessor(stock_id)
     if df_balance_sheet is not None:
-        time_lines = get_time_lines(since={'year': start_year})
+        time_lines = get_time_lines(since={'year': start_year}, to=to)
         dfs_get = []
         for time_line in time_lines:
 
@@ -368,8 +369,8 @@ def _sync_balance_sheet(start_year, stock_id, df_balance_sheet=None):
             df_balance_sheet = pd.concat(dfs_get, sort=False).sort_index()
         return df_balance_sheet
     else:
-        df_balance_statement = balance_sheet_processor.get_data_frames({'year': start_year - 1})
-        df_shareholder_equity = shareholder_equity_processor.get_data_frames({'year': start_year - 1})
+        df_balance_statement = balance_sheet_processor.get_data_frames({'year': start_year - 1}, to=to)
+        df_shareholder_equity = shareholder_equity_processor.get_data_frames({'year': start_year - 1}, to=to)
         if df_balance_statement is None or df_shareholder_equity is None:
             return None
         df_combine = df_balance_statement.join(df_shareholder_equity, how='outer')
@@ -379,12 +380,13 @@ def _sync_balance_sheet(start_year, stock_id, df_balance_sheet=None):
         return df_combine
 
 
-def _sync_profit_statement(start_year, stock_id, df_profit_statement=None):
+def _sync_profit_statement(stock_id, start_year, to_year=None, df_profit_statement=None):
+    to = {'year': to_year} if to_year is not None else None
     income_statement_processor = SimpleIncomeStatementProcessor()
     if df_profit_statement is None:
-        df_profit_statement = income_statement_processor.get_data_frames(stock_id, {'year': start_year - 1})
+        df_profit_statement = income_statement_processor.get_data_frames(stock_id, {'year': start_year - 1}, to)
     else:
-        time_lines = get_time_lines(since={'year': start_year})
+        time_lines = get_time_lines(since={'year': start_year}, to=to)
         dfs_get = []
         for time_line in time_lines:
             row_index = "{}Q{}".format(time_line['year'], time_line['season'])
@@ -392,7 +394,7 @@ def _sync_profit_statement(start_year, stock_id, df_profit_statement=None):
 
             is_empty = val is None or len(val.values) == 0
             if is_empty:
-                df_statement = income_statement_processor.get_data_frame(time_line['year'], time_line['season'])
+                df_statement = income_statement_processor.get_data_frame(stock_id, time_line['year'], time_line['season'])
                 if df_statement is not None:
                     dfs_get.append(df_statement)
         if len(dfs_get) > 0:
@@ -401,25 +403,25 @@ def _sync_profit_statement(start_year, stock_id, df_profit_statement=None):
     return df_profit_statement
 
 
-def _sync_dividend_policy(start_year, stock_id, df_dividend_policy=None):
+def _sync_dividend_policy(stock_id, start_year, df_dividend_policy=None):
     # now = datetime.now()
     dividend_policy_processor = DividendPolicyProcessor2()
     # df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1}, {'year': now.year})
     stock_count_processor = StockCountProcessor()
-    price_measurement_processor = PriceMeasurementProcessor(stock_id)
+    price_measurement_processor = PriceMeasurementProcessor2()
 
     if df_dividend_policy is None:
         # df_dividend_policy = dividend_policy_processor.get_data_frames({'year': start_year - 1})
         df_dividend_policy = dividend_policy_processor.get_data_frames(stock_id=stock_id, start_year=start_year - 1)
         df_stock_count = stock_count_processor.get_data_frame(stock_id, start_year)
-        df_prices = price_measurement_processor.get_data_frame(indexType=IndexType.YEAR_INDEX)
+        df_prices = price_measurement_processor.get_data_frame(stock_id)
         print("stock_counts = ", df_stock_count)
         print('df_dividend_policy = ', df_dividend_policy)
         print('df_prices = ', df_prices)
         if df_stock_count is None or df_dividend_policy is None or df_prices is None:
             return None
         df_combine = df_dividend_policy.join(df_stock_count, how='outer').join(df_prices, how='outer')
-        indexes_to_drop = df_combine[df_combine['現金股利'].isna()].index
+        indexes_to_drop = df_combine[df_combine['股數'].isna()].index
         df_combine.drop(indexes_to_drop, inplace=True)
         print('合併 = ', df_combine)
         # print('test value ', df_combine.loc['2019']['現金股利'])
