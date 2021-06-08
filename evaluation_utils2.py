@@ -24,6 +24,7 @@ _cash_flow_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_CASH_FLOW)
 _profit_statement_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PROFIT_STATEMENT)
 _balance_sheet_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_BALANCE_SHEET)
 _dividend_policy_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_DIVIDEND_POLICY)
+_performance_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PERFORMANCE)
 
 
 class Option(enum.IntEnum):
@@ -81,7 +82,7 @@ def generate_predictions(df_prices, stock_ids=[]):
     for stock_id in stock_ids:
         str_stock_id = str(stock_id)
         try:
-            result = generate_prediction(stock_id, float(df_prices.loc[str_stock_id]))
+            result = None if not df_prices.index.contains(str_stock_id) else generate_prediction(stock_id, float(df_prices.loc[str_stock_id]))
         except Exception as e:
             print("Unexpected error:", sys.exc_info()[0])
             traceback.print_tb(e.__traceback__)
@@ -123,21 +124,37 @@ def _get_stock_list():
 
 
 def generate_prediction(stock_id, price):
-    df_statements = _read_df_datas(stock_id)
-    df_balance_sheet = _normalize_balance_sheet(df_statements)
-    df_dividend_policy = df_statements['dividend_policy']
-    df_performance = df_statements['performance']
-    df_profit_statement = df_statements['profit_statement']
-    df_cash_flow_statement = df_statements['cash_flow_statement']
-    print('cash_flow_first_8q = ', df_statements['cash_flow_statement'].iloc[0: 8])
-    indexes = list(filter(lambda period: period.year == 2019, df_balance_sheet.index.values.tolist()))
-    year_last_has_dividend = df_dividend_policy.index.values.tolist()[-1]
+    # df_statements = _read_df_datas(stock_id)
+    # df_balance_sheet = _normalize_balance_sheet(df_statements)
+    # df_dividend_policy = df_statements['dividend_policy']
+    # df_performance = df_statements['performance']
+    # df_profit_statement = df_statements['profit_statement']
+    # df_cash_flow_statement = df_statements['cash_flow_statement']
+    # print('cash_flow_first_8q = ', df_statements['cash_flow_statement'].iloc[0: 8])
+    df_balance_sheet = _balance_sheet_repository.get_data(stock_id)
+    df_dividend_policy = _dividend_policy_repository.get_data(stock_id)
+    df_performance = _performance_repository.get_data(stock_id)
+    df_profit_statement = _profit_statement_repository.get_data(stock_id)
+    df_cash_flow_statement = _cash_flow_repository.get_data(stock_id)
+    df_with_dividend = df_dividend_policy.loc[~df_dividend_policy['現金股利'].isna()]
+    year_last_has_dividend = df_with_dividend.index.values.tolist()[-1]
+    print('df_dividend_policy = ', df_dividend_policy)
+    print('df_performance = ', df_performance)
+    print('df_profit = ', df_profit_statement)
+    print('df_cash_flow = ', df_cash_flow_statement)
+    print('df_balance_sheet = ', df_balance_sheet)
+    print('df_with_dividend = ', df_with_dividend)
+    print('year_last_has_dividend = ', year_last_has_dividend)
     year_last_has_dividend_int = year_last_has_dividend.year
     dividend_indexes = list(
         filter(lambda period: period.year == year_last_has_dividend_int, df_dividend_policy.index.values.tolist()))
     next_year_indexes = list(filter(lambda period: period.year == (year_last_has_dividend_int + 1),
                                     df_profit_statement.index.values.tolist()))
     count_of_next_year_indexes = len(next_year_indexes)
+    if count_of_next_year_indexes == 0:
+        year_last_has_dividend_int = year_last_has_dividend_int - 1
+        count_of_next_year_indexes = 4
+    count_of_next_year_indexes = 4 if count_of_next_year_indexes == 0 else count_of_next_year_indexes
     eps_last_year = df_profit_statement.loc[
                     '{}Q1'.format(year_last_has_dividend_int): '{}Q4'.format(year_last_has_dividend_int), 'EPS'].sum()
     eps_last_year_current_q = df_profit_statement.loc[
@@ -223,13 +240,13 @@ def _sync_performance(stock_id):
     df_profit_statement = _profit_statement_repository.get_data(stock_id)
     df_cash_flow_statement = _cash_flow_repository.get_data(stock_id).sort_index()
     df_dividend_policy = _dividend_policy_repository.get_data(stock_id)
-    print('df_profit_statement columns ', df_profit_statement.columns)
+    # print('df_profit_statement columns ', df_profit_statement.columns)
     print('df_profit_statement', df_profit_statement)
-    print('df_balance_sheet columns ', df_balance_sheet.columns)
+    # print('df_balance_sheet columns ', df_balance_sheet.columns)
     print('df_balance_sheet ', df_balance_sheet)
-    print('df_cash_flow_statement columns', df_cash_flow_statement.columns)
+    # print('df_cash_flow_statement columns', df_cash_flow_statement.columns)
     print('df_cash_flow_statement', df_cash_flow_statement)
-    print('df_dividend_policy columns', df_dividend_policy.columns)
+    # print('df_dividend_policy columns', df_dividend_policy.columns)
     print('df_dividend_policy', df_dividend_policy)
     now = datetime.now()
     start_year = max(df_dividend_policy.index.values[0].year + 1, 2014)
@@ -290,6 +307,9 @@ def _sync_performance(stock_id):
     print('profits = ', profits)
     df_performance = pd.concat(dfs_result, sort=True) if len(dfs_result) > 0 else None
     print(stock_id, ' df_performance = ', df_performance)
+    print('index = ', df_performance.index)
+    print('columns = ', df_performance.columns)
+    _performance_repository.put_data(stock_id, df_performance)
     # df_statements['performance'] = df_performance
     # store_df(stock_id, df_statements, filename='statments_{0}.xlsx'.format(stock_id))
     return df_performance

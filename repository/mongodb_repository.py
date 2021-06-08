@@ -96,6 +96,10 @@ class MongoDBMeta(Enum):
                                  Transformer(in_transform=yearly_period_data_frame_in_transform,
                                              out_transform=default_data_frame_out_transform)
                                  )
+    DATAFRAME_PERFORMANCE = ('TWSE', 'dataframe_performance', _DataType.DATA_FRAME,
+                             Transformer(in_transform=yearly_period_data_frame_in_transform,
+                                         out_transform=default_data_frame_out_transform)
+                             )
 
     def __init__(self, db, table, data_type=_DataType.CONTENT, transformer=default_transformer):
         self.db = db

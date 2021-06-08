@@ -56,6 +56,7 @@ class SimpleIncomeStatementProcessor:
                 fetch_simple_balance_sheet_raw_data(stock_id, year, season)
                 raw_data = self.__repository.get_data(stock_id, {'year': year, 'season': season})
             bs = BeautifulSoup(raw_data, 'html.parser')
+            print(' get ', bs.text)
             tables = bs.find_all('table', attrs={"class": "hasBorder", "align": "center", "width": "70%"})
             table = tables[2]
             rows = table.find_all('tr')

@@ -10,7 +10,7 @@ from evaluation_utils import get_matrix_level, get_cash_flow_per_share, get_pred
     get_stock_data, get_matrix_value, resync_for_dividend_policy
 from evaluation_utils2 import _sync_dividend_policy, sync_statements, sync_performance, generate_predictions, \
     Option, _sync_cash_flow_statement, _sync_profit_statement, _sync_balance_sheet, _sync_statements_with_repository, \
-    _sync_performance
+    _sync_performance, generate_prediction
 from rdss.balance_sheet import SimpleBalanceSheetProcessor
 from rdss.cashflow_statment import CashFlowStatementProcessor
 from rdss.dividend_policy import DividendPolicyProcessor
@@ -60,7 +60,7 @@ class MainTest(unittest.TestCase):
         print(data_frame)
 
     def test_shareholder_equity(self):
-        shareholder_euity_processor = ShareholderEquityProcessor(2330)
+        shareholder_euity_processor = ShareholderEquityProcessor(1314)
         # data_frame = shareholder_euity_processor.get_data_frame(2018, 1)
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
         #
@@ -73,10 +73,7 @@ class MainTest(unittest.TestCase):
         # data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2017})
         # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
 
-        data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2017, 'season': 2})
-        # print(tabulate([list(row) for row in data_frame.values], headers=list(data_frame.columns), showindex="always"))
-        data_frame2 = ((data_frame['權益總額']['期初餘額'] + data_frame['權益總額']['期末餘額']) / 2)
-        # print(data_frame['權益總額']['期末餘額'])
+        data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2019, 'season': 1})
         print("result = ", data_frame)
 
         # data_frame = shareholder_euity_processor.get_data_frames(since={'year': 2018, 'season': 3})
@@ -245,7 +242,12 @@ class MainTest(unittest.TestCase):
         # sync_data(1101)
 
     def test_sync_performance(self):
-        _sync_performance(1580)
+        _sync_performance(2841)
+        _repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PERFORMANCE)
+        content = _repository.get_data(2841)
+        print(content)
+        print('index = ', content.index)
+        print('columns = ', content.columns)
 
     def test_sync_performance2(self):
         # _sync_statements(8013)
@@ -268,49 +270,49 @@ class MainTest(unittest.TestCase):
 
     def test_store_data_frames(self):
         # '''
-        df_cash_flow_before = _sync_cash_flow_statement(1101, 2014, to_year=2019)
+        df_cash_flow_before = _sync_cash_flow_statement(4564, 2013, to_year=2019)
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_CASH_FLOW)
-        db_repository.put_data(1101, df_cash_flow_before)
-        data_frame = db_repository.get_data(1101)
+        db_repository.put_data(4564, df_cash_flow_before)
+        data_frame = db_repository.get_data(4564)
         print(data_frame)
         print(data_frame.index)
         # '''
 
         # '''
-        df_profit_statement_before = _sync_profit_statement(1101, 2013, to_year=2019)
+        df_profit_statement_before = _sync_profit_statement(4564, 2013, to_year=2019)
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PROFIT_STATEMENT)
-        db_repository.put_data(1101, df_profit_statement_before)
-        data_frame = db_repository.get_data(1101)
+        db_repository.put_data(4564, df_profit_statement_before)
+        data_frame = db_repository.get_data(4564)
         print(data_frame)
         print(data_frame.index)
         # '''
         # '''
-        df_balance_sheet_before = _sync_balance_sheet(1101, 2014, to_year=2019)
+        df_balance_sheet_before = _sync_balance_sheet(4564, 2013, to_year=2020)
         print(df_balance_sheet_before)
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_BALANCE_SHEET)
-        db_repository.put_data(1101, df_balance_sheet_before)
-        data_frame = db_repository.get_data(1101)
+        db_repository.put_data(4564, df_balance_sheet_before)
+        data_frame = db_repository.get_data(4564)
         print(data_frame)
         print(data_frame.columns)
         # '''
         # '''
-        df_dividend_before = _sync_dividend_policy(1101, 2013)
+        df_dividend_before = _sync_dividend_policy(4564, 2013)
         print(df_dividend_before)
         print(df_dividend_before.index)
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_DIVIDEND_POLICY)
-        db_repository.put_data(1101, df_dividend_before)
-        data_frame = db_repository.get_data(1101)
+        db_repository.put_data(4564, df_dividend_before)
+        data_frame = db_repository.get_data(4564)
         print(data_frame)
         print(data_frame.index)
         # '''
         # '''
-        df_dividend_before = _sync_dividend_policy(1240, 2013)
+        df_dividend_before = _sync_dividend_policy(4564, 2013)
         print(df_dividend_before)
         print(type(df_dividend_before.index))
         self.assertIsInstance(df_dividend_before.index, pd.PeriodIndex)
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_DIVIDEND_POLICY)
-        db_repository.put_data(1240, df_dividend_before)
-        data_frame = db_repository.get_data(1240)
+        db_repository.put_data(4564, df_dividend_before)
+        data_frame = db_repository.get_data(4564)
         print(data_frame)
         print(data_frame.index)
         self.assertIsInstance(data_frame.index, pd.PeriodIndex)
@@ -319,22 +321,22 @@ class MainTest(unittest.TestCase):
     def test_sync_statements(self):
         # '''
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_CASH_FLOW)
-        data_frame_before = db_repository.get_data(1101)
-        data_frame_after = _sync_cash_flow_statement(1101, 2014, to_year=2021, df_cash_flow_statement=data_frame_before)
+        data_frame_before = db_repository.get_data(2841)
+        data_frame_after = _sync_cash_flow_statement(2841, 2013, to_year=2021, df_cash_flow_statement=data_frame_before)
         print('before = ', data_frame_before)
         print('after = ', data_frame_after)
         # '''
         # '''
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_PROFIT_STATEMENT)
-        data_frame_before = db_repository.get_data(1101)
-        data_frame_after = _sync_profit_statement(1101, 2014, df_profit_statement=data_frame_before)
+        data_frame_before = db_repository.get_data(2841)
+        data_frame_after = _sync_profit_statement(2841, 2013, df_profit_statement=data_frame_before)
         print('before = ', data_frame_before)
         print('after = ', data_frame_after)
-        # '''
+         # '''
         # '''
         db_repository = MongoDBRepository(MongoDBMeta.DATAFRAME_BALANCE_SHEET)
-        data_frame_before = db_repository.get_data(2929)
-        data_frame_after = _sync_balance_sheet(2929, 2013, 2019, df_balance_sheet=data_frame_before)
+        data_frame_before = db_repository.get_data(2841)
+        data_frame_after = _sync_balance_sheet(2841, 2013, 2019, df_balance_sheet=data_frame_before)
         print('before = ', data_frame_before)
         print('after = ', data_frame_after)
         # '''
@@ -452,7 +454,7 @@ class MainTest(unittest.TestCase):
 
     def test_tsec_crawler(self):
         crawler = Crawler()
-        df = crawler.get_data((2020, 5, 8))
+        df = crawler.get_data((2021, 4, 29))
         with pd.ExcelWriter(gen_output_path('data', 'prices.xlsx')) as writer:
             df.to_excel(writer)
             writer.close()
@@ -462,9 +464,10 @@ class MainTest(unittest.TestCase):
             df = pd.read_excel(file)
             file.close()
         prices = df.loc[:, '收盤價']
-        errors = generate_predictions(prices, get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃'))
-        # generate_predictions2(prices, [2474, 1227, 2105, 2327, 3213, 4974, 6294, 8066, 8103, 8210, 8416, 8905, 9927])
-        print('test_get_prediction errors = ', errors)
+        # errors = generate_predictions(prices, get_stock_codes(stock_type='上市') + get_stock_codes(stock_type='上櫃'))
+        # print('test_get_prediction errors = ', errors)
+        result = generate_prediction(2841, float(prices.loc[str(2841)]))
+        print(result)
 
     def test_re_sync_dividend(self):
         resync_for_dividend_policy([1102])
@@ -475,37 +478,40 @@ class MainTest(unittest.TestCase):
         # print(statement)
 
     def test_fetch_data_utils(self):
-        # get_simple_balance_sheet_raw_datas([2330], time_lines=get_time_lines(since={'year': 2020}))
+        '''
         stock_code_list = get_stock_codes(stock_type='上市')
-        # stock_code_list.extend(get_stock_codes(stock_type='上櫃'))
-        # fetch_price_measurement_raw_datas([2809])
         fetch_twse_price_measurement_raw_datas(stock_code_list[0: 1])
 
         tpex_stock_code_list = get_stock_codes(stock_type='上櫃')
         fetch_tpex_price_measurement_raw_datas(tpex_stock_code_list[0:1])
         result = MongoDBRepository(MongoDBMeta.TPEX_PRICE_MEASUREMENT).get_data(stock_code_list[0])
         self.assertIsNotNone(result)
-
-        fetch_dividend_policy_raw_datas(stock_code_list[0:1])
-        result = MongoDBRepository(MongoDBMeta.DIVIDEND_POLICY).get_data(stock_code_list[0])
+        '''
+        '''
+        fetch_dividend_policy_raw_datas(2884)
+        result = MongoDBRepository(MongoDBMeta.DIVIDEND_POLICY).get_data(2884)
         self.assertIsNotNone(result)
-
-        fetch_shareholder_equity_raw_data(2809, 2020, 3)
+        '''
+        # '''
+        fetch_shareholder_equity_raw_data(2884, 2020, 3)
         result = MongoDBRepository(MongoDBMeta.SHARE_HOLDER).get_data(2809, {'year': 2020, 'season': 3})
         self.assertIsNotNone(result)
-
+        # '''
+        '''
         fetch_simple_balance_sheet_raw_data(2884, 2020, 3)
         result = MongoDBRepository(MongoDBMeta.SIMPLE_BALANCE_SHEET).get_data(2884, {'year': 2020, 'season': 3})
         self.assertIsNotNone(result)
-
+        '''
+        '''
         fetch_balance_sheet_raw_data(2884, 2020, 3)
         result = MongoDBRepository(MongoDBMeta.FULL_BALANCE_SHEET).get_data(2884, {'year': 2020, 'season': 3})
         self.assertIsNotNone(result)
-
+        '''
+        '''
         fetch_cash_flow_raw_data(2809, 2020, 3)
         result = MongoDBRepository(MongoDBMeta.CASH_FLOW).get_data(2809, {'year': 2020, 'season': 3})
         self.assertIsNotNone(result)
-
+        '''
     def store_raw_data(self, data, output_dir, file_name):
         if data is not None:
             output_path = gen_output_path(output_dir, file_name)
